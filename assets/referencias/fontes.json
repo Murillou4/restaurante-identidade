@@ -1,0 +1,86 @@
+{
+  "verifiedOn": "2026-10-05",
+  "purpose": "Referências de nome e identidade visual. Imagens obtidas das páginas identificadas, sem geração de novas imagens.",
+  "references": [
+    {
+      "id": "jao-batata",
+      "filename": "jao-batata.webp",
+      "name": "Jão Batata",
+      "page": "https://linktr.ee/jaobatata",
+      "url": "https://ugc.production.linktr.ee/0c1f99ac-4f1a-4b69-90e8-7a6883a67c87_IMG-20250330-224523-133.webp",
+      "note": "Fundo mostarda, chef em preto/branco e letras cursivas. Observar a paleta acolhedora e a redução de cores. O Linktree confirma a marca; a especialidade não foi conferida no cardápio."
+    },
+    {
+      "id": "cantinho",
+      "filename": "cantinho-da-batata.jpg",
+      "name": "Cantinho da Batata Recheada",
+      "page": "https://app.cardapioweb.com/cantinho_da_batata_recheada",
+      "url": "https://storage.googleapis.com/prod-cardapio-web/uploads/company/logo/9342/a16bd41233GA0X4B5D_140311961929040.jpg",
+      "note": "Batatas desenhadas com poucos elementos, selo e faixa vinho. Observar a sensação acolhedora e a clareza do produto; o fundo decorado pode ser dispensado em versões pequenas."
+    },
+    {
+      "id": "baked",
+      "filename": "baked-potato.png",
+      "name": "Baked Potato",
+      "page": "https://bakedpotato.com.br/",
+      "url": "https://bakedpotato.com.br/wp-content/uploads/2023/05/LogoBakedPotatoAzul.png",
+      "note": "Nome em azul escuro, sem mascote na versão vista. Observar como as letras sustentam a identidade sozinhas; a linguagem mais firme serve de comparação com o acolhimento desejado."
+    },
+    {
+      "id": "yummy",
+      "filename": "yummy-potato.png",
+      "name": "Yummy Potato",
+      "page": "https://www.yummypotato.com.br/",
+      "url": "https://assets.menuintegrado.com/rails/active_storage/representations/proxy/eyJfcmFpbHMiOnsiZGF0YSI6MTg2NjUxLCJwdXIiOiJibG9iX2lkIn19--dc3ccdf2c75605e39022b2ff25442a76c9b72d74/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJwbmciLCJyZXNpemVfdG9fZmlsbCI6WzMyMCwzMjBdfSwicHVyIjoidmFyaWF0aW9uIn19--3287878927e04f927660a6d7bc35d088e4f62ec6/YUMMY_POTATO_LOGO_REDONDO2.png",
+      "note": "Rosto simples, amarelo e preto em formato circular. Observar expressão e contraste com poucos traços, especialmente para avatar."
+    },
+    {
+      "id": "vovo",
+      "filename": "bartataria-da-vovo.webp",
+      "name": "Bartataria da Vovó",
+      "page": "https://batataria.com.br/",
+      "url": "https://irp.cdn-website.com//288444dc/dms3rep/multi/opt/LogoMeio-648w.png",
+      "note": "Batata personificada como avó, nome em amarelo/marrom. Observar a associação entre nome e afeto. A grafia é Bartataria, com R; o cardápio é de batata suíça/rösti recheada."
+    },
+    {
+      "id": "donna",
+      "filename": "donna-batata.png",
+      "name": "Donna Batata",
+      "page": "https://www.agenciaideiabrasil.com.br/portfolio/modern-elegance-suite/",
+      "url": "https://www.agenciaideiabrasil.com.br/wp-content/uploads/2015/07/perfil.png",
+      "note": "Letras cursivas e uma senhora batata com toque de chef, em laranja/vermelho. Observar o vínculo entre nome e personagem. Fonte: portfólio da agência criadora; não confirma a operação atual do restaurante."
+    },
+    {
+      "id": "roasted",
+      "filename": "roasted-potato.png",
+      "name": "Roasted Potato",
+      "page": "https://roastedpotato.com.br/",
+      "url": "https://roastedpotato.com.br/wp-content/uploads/2026/08/logo-roasted-potato.png",
+      "note": "Símbolo amarelo sorridente e nome vermelho em letras fortes. Observar a separação entre símbolo e nome, com reconhecimento simples."
+    },
+    {
+      "id": "dona",
+      "filename": "dona-batata.png",
+      "name": "Dona Batata — Batata Recheada no Pote",
+      "page": "https://www.pedidos10.com.br/produtos/dona-batata",
+      "url": "https://files2.pedidos10.com.br/extranet/arquivos/imagens/logomarca/8ed48394b04dca42b18f3b96f2746c1d.png",
+      "note": "Mascote de chef, amarelo/vermelho e nome em letras de bloco. Observar como o complemento explica o formato do produto. É outra marca, diferente de Donna Batata."
+    },
+    {
+      "id": "divina",
+      "filename": "divina-batatas.webp",
+      "name": "Divina Batatas",
+      "page": "https://divina-batata-recheada.ola.click/products",
+      "url": "https://assets.olaclick.app/companies/logos/d25eb4ec-8485-49f6-bc7f-b00e7b302149.webp",
+      "note": "Batata com auréola, letras com volume e fundo de tijolos. Observar a conexão literal entre nome e símbolo, e comparar o excesso de efeitos com a simplicidade desejada. No cardápio: Divina batata recheada."
+    },
+    {
+      "id": "rei",
+      "filename": "rei-batata.webp",
+      "name": "Rei Batata",
+      "page": "https://rei-batata.ola.click/products",
+      "url": "https://assets.olaclick.app/companies/logos/0e0b3270-0176-4403-9f03-3b9af9e22d1a.webp",
+      "note": "Batata coroada acima do nome e complemento em faixa. Observar a ordem de leitura: símbolo, marca e produto. A coroa corresponde ao nome dessa referência."
+    }
+  ]
+}
