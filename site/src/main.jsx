@@ -4,28 +4,17 @@ import { BookmarkSimple, Check, CookingPot, Heart, House, MapPin, MagnifyingGlas
 import '@fontsource-variable/fraunces';
 import '@fontsource-variable/outfit';
 import { names, references, filters } from './data';
+import { useSharedChoices } from './useSharedChoices';
 import './style.css';
 
-const storageKey = 'nossa-batataria-favoritos-v1';
 const asset = (filename) => `${import.meta.env.BASE_URL}referencias/${filename}`;
 
-function readChoices() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(storageKey));
-    return {
-      names: Array.isArray(saved?.names) ? saved.names.filter((id) => names.some((item) => item.id === id)) : [],
-      references: Array.isArray(saved?.references) ? saved.references.filter((id) => references.some((item) => item.id === id)) : [],
-    };
-  } catch {
-    return { names: [], references: [] };
-  }
-}
-
-function FavoriteButton({ selected, onClick, label, compact = false, text = 'Gostei deste nome' }) {
+function FavoriteButton({ selected, onClick, label, compact = false, text = 'Gostei deste nome', disabled = false, pending = false }) {
+  const visibleText = pending ? 'Salvando…' : selected ? 'Favorito' : text;
   return (
-    <button type="button" aria-pressed={selected} aria-label={compact ? `${selected ? 'Desmarcar' : 'Marcar'} ${label} como favorito` : `${selected ? 'Favorito' : text}: ${label}${selected ? '. Desmarcar' : ''}`} onClick={onClick} className={`favorite-button ${selected ? 'is-selected' : ''} ${compact ? 'compact' : ''}`}>
+    <button type="button" disabled={disabled || pending} aria-busy={pending} aria-pressed={selected} aria-label={compact ? `${pending ? 'Salvando' : selected ? 'Desmarcar' : 'Marcar'} ${label} como favorito` : `${visibleText}: ${label}${selected && !pending ? '. Desmarcar' : ''}`} onClick={onClick} className={`favorite-button ${selected ? 'is-selected' : ''} ${compact ? 'compact' : ''}`}>
       <Heart size={20} weight={selected ? 'fill' : 'regular'} aria-hidden="true" />
-      {!compact && <span>{selected ? 'Favorito' : text}</span>}
+      {!compact && <span>{visibleText}</span>}
     </button>
   );
 }
@@ -40,7 +29,7 @@ function ReferenceImage({ reference, large = false }) {
   );
 }
 
-function ReferenceDialog({ reference, onClose, selected, onFavorite }) {
+function ReferenceDialog({ reference, onClose, selected, onFavorite, disabled, pending }) {
   const dialog = useRef(null);
   useEffect(() => {
     if (reference && !dialog.current.open) dialog.current.showModal();
@@ -59,7 +48,7 @@ function ReferenceDialog({ reference, onClose, selected, onFavorite }) {
         <p className="mt-4 font-medium">{reference.lesson}</p>
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
           <a className="source-link" href={reference.source} target="_blank" rel="noopener noreferrer">{reference.provenance}</a>
-          <FavoriteButton selected={selected} label={reference.name} onClick={onFavorite} text="Gostei desta referência" />
+          <FavoriteButton selected={selected} label={reference.name} onClick={onFavorite} text="Gostei desta referência" disabled={disabled} pending={pending} />
         </div>
       </div>}
     </dialog>
@@ -67,23 +56,17 @@ function ReferenceDialog({ reference, onClose, selected, onFavorite }) {
 }
 
 function App() {
-  const [choices, setChoices] = useState(readChoices);
-  const [storageError, setStorageError] = useState(false);
+  const shared = useSharedChoices();
+  const emptyChoices = { names: [], references: [] };
+  const choices = shared.person ? shared.room?.people[shared.person] ?? emptyChoices : emptyChoices;
   const [filter, setFilter] = useState('todas');
   const [openReference, setOpenReference] = useState(null);
-  const totalChoices = choices.names.length + choices.references.length;
+  const totalChoices = shared.room ? Object.values(shared.room.people).reduce((total, person) => total + person.names.length + person.references.length, 0) : 0;
   const visibleReferences = references.filter((item) => filter === 'todas' || item.category === filter);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(choices));
-      setStorageError(false);
-    } catch {
-      setStorageError(true);
-    }
-  }, [choices]);
-
-  const toggle = (type, id) => setChoices((current) => ({ ...current, [type]: current[type].includes(id) ? current[type].filter((value) => value !== id) : [...current[type], id] }));
+  const toggle = (type, id) => shared.toggle(type, id);
+  const pending = (type, id) => shared.pendingKeys.has(`${shared.person}:${type}:${id}`);
+  const resetBlocked = [...shared.pendingKeys, ...shared.failedKeys].some((key) => key.endsWith(':reset'));
+  const blocked = (type, id) => !shared.person || !shared.room || resetBlocked || shared.failedKeys.has(`${shared.person}:${type}:${id}`);
 
   return (
     <>
@@ -124,6 +107,14 @@ function App() {
           </aside>
         </section>
 
+        <section className="shared-panel page-width" aria-labelledby="shared-panel-title">
+          <div className="shared-panel-heading"><div><span className="eyebrow">ESCOLHAS COMPARTILHADAS</span><h2 id="shared-panel-title" className="font-display">Um caderno para nós dois.</h2><p>O que vocês marcarem aparece para os dois, pelo mesmo link.</p></div><button type="button" className="primary-button" onClick={shared.copyLink} disabled={shared.copyState === 'copying'}>{shared.copyState === 'copied' ? 'Link copiado' : shared.copyState === 'copying' ? 'Copiando…' : 'Copiar link para minha mãe'}</button></div>
+          <div className="identity-row"><span>Estou marcando como:</span><div role="group" aria-label="Quem está marcando os favoritos" className="identity-buttons"><button type="button" className={shared.person === 'eu' ? 'active' : ''} aria-pressed={shared.person === 'eu'} onClick={() => shared.setPerson('eu')}>Eu (filho)</button><button type="button" className={shared.person === 'mae' ? 'active' : ''} aria-pressed={shared.person === 'mae'} onClick={() => shared.setPerson('mae')}>Mãe</button></div><span className="sync-status" role="status">{shared.loading ? 'Abrindo o caderno…' : shared.pendingKeys.size ? 'Salvando escolhas…' : shared.error ? 'Não foi possível atualizar' : shared.room ? 'Caderno atualizado' : 'Aguardando conexão'}</span></div>
+          {!shared.person && <p className="shared-helper">Escolha quem está marcando para começar a guardar os favoritos.</p>}
+          {shared.error && <div className="sync-error" role="alert"><p>{shared.error}</p><button type="button" className="text-link" onClick={shared.retry} disabled={shared.isBusy}>Tentar novamente</button></div>}
+          {shared.copyState === 'error' && <p className="shared-helper" role="status">Não foi possível copiar automaticamente. Copie este link: <a className="source-link break-all" href={shared.shareUrl}>{shared.shareUrl}</a></p>}
+        </section>
+
         <section id="nomes" className="section page-width">
           <div className="section-heading"><div><span className="eyebrow">01 / O NOME</span><h2 className="font-display">Como vamos nos chamar?</h2></div><p>Leia em voz alta. Imagine alguém pedindo a nossa batata pelo nome.</p></div>
           <div className="names-grid">
@@ -133,7 +124,7 @@ function App() {
               <p className="name-description">{item.description}</p>
               <blockquote>“{item.phrase}”</blockquote>
               <p className="name-consideration">{item.consideration}</p>
-              <FavoriteButton selected={choices.names.includes(item.id)} label={item.name} onClick={() => toggle('names', item.id)} />
+              <FavoriteButton selected={choices.names.includes(item.id)} label={item.name} onClick={() => toggle('names', item.id)} disabled={blocked('names', item.id)} pending={pending('names', item.id)} />
             </article>)}
           </div>
           <p className="section-footnote">Quatro ideias iniciais. O nome ainda será escolhido por vocês, e a disponibilidade precisa ser pesquisada.</p>
@@ -153,7 +144,7 @@ function App() {
             {visibleReferences.map((item) => <article key={item.id} className="reference-card">
               <div className="reference-art">
                 <button type="button" className="enlarge-button" aria-label={`Ampliar logo de ${item.name}`} onClick={() => setOpenReference(item)}><ReferenceImage reference={item} /><span className="enlarge-caption"><MagnifyingGlassPlus size={18} aria-hidden="true" />Ampliar</span></button>
-                <FavoriteButton compact selected={choices.references.includes(item.id)} label={item.name} onClick={() => toggle('references', item.id)} />
+                <FavoriteButton compact selected={choices.references.includes(item.id)} label={item.name} onClick={() => toggle('references', item.id)} disabled={blocked('references', item.id)} pending={pending('references', item.id)} />
               </div>
               <div className="reference-caption"><h3>{item.name}</h3><p>{item.lesson}</p><a href={item.source} target="_blank" rel="noopener noreferrer" className="source-link">Ver fonte</a></div>
             </article>)}
@@ -163,16 +154,22 @@ function App() {
 
         <section id="favoritos" className="favorites-section page-width">
           <div className="section-heading"><div><span className="eyebrow">03 / PARA A NOSSA CONVERSA</span><h2 className="font-display">O que ficou com a gente?</h2></div><p>Separem dois nomes e três referências. Depois, contem um ao outro o que mais gostaram.</p></div>
-          {totalChoices === 0 ? <div className="empty-notebook"><Heart size={28} aria-hidden="true" /><div><h3>Seu caderno começa aqui.</h3><p>Marque o coração nos nomes e nas logos que chamaram sua atenção. Eles vão aparecer juntos neste espaço.</p></div></div> : <div className="chosen-grid">
-            <div><h3 className="choices-heading">Nomes que gostei <span>{choices.names.length}</span></h3>{choices.names.length ? <ul>{names.filter((item) => choices.names.includes(item.id)).map((item) => <li key={item.id} className="chosen-name"><Check size={20} aria-hidden="true" /><span className="font-display">{item.name}</span><button type="button" className="icon-button" aria-label={`Remover ${item.name} dos favoritos`} onClick={() => toggle('names', item.id)}><X size={18} aria-hidden="true" /></button></li>)}</ul> : <p className="text-muted mt-5">Nenhum nome marcado ainda.</p>}</div>
-            <div><h3 className="choices-heading">Logos que gostei <span>{choices.references.length}</span></h3>{choices.references.length ? <div className="chosen-logos">{references.filter((item) => choices.references.includes(item.id)).map((item) => <button type="button" key={item.id} aria-label={`Ver referência favorita: ${item.name}`} onClick={() => setOpenReference(item)}><img src={asset(item.filename)} alt="" /><span>{item.name}</span></button>)}</div> : <p className="text-muted mt-5">Nenhuma referência marcada ainda.</p>}</div>
+          {!shared.room ? <div className="empty-notebook"><BookmarkSimple size={28} aria-hidden="true" /><div><h3>{shared.loading ? 'Abrindo o caderno compartilhado…' : 'Vamos reconectar o caderno.'}</h3><p>As escolhas dos dois aparecem aqui quando a conexão estiver pronta.</p></div></div> : <div className="chosen-grid shared-people">
+            {['eu', 'mae'].map((person) => {
+              const personChoices = shared.room.people[person];
+              const count = personChoices.names.length + personChoices.references.length;
+              return <article className="person-choices" key={person}><h3 className="choices-heading">{person === 'eu' ? 'Escolhas do filho' : 'Escolhas da mãe'}<span>{count} {count === 1 ? 'favorito' : 'favoritos'}</span>{person === shared.person && <span className="editing-person">VOCÊ ESTÁ MARCANDO AQUI</span>}</h3>
+                <h4 className="choice-type-heading">Nomes</h4>{personChoices.names.length ? <ul>{names.filter((item) => personChoices.names.includes(item.id)).map((item) => <li key={item.id} className="chosen-name"><Check size={20} aria-hidden="true" /><span className="font-display">{item.name}</span>{person === shared.person && <button type="button" className="icon-button" aria-label={`Remover ${item.name} dos favoritos`} disabled={blocked('names', item.id) || pending('names', item.id)} onClick={() => toggle('names', item.id)}><X size={18} aria-hidden="true" /></button>}</li>)}</ul> : <p className="text-muted mt-3">Nenhum nome marcado ainda.</p>}
+                <h4 className="choice-type-heading">Referências de logo</h4>{personChoices.references.length ? <div className="chosen-logos">{references.filter((item) => personChoices.references.includes(item.id)).map((item) => <button type="button" key={item.id} aria-label={`Ver referência favorita: ${item.name}`} onClick={() => setOpenReference(item)}><img src={asset(item.filename)} alt="" /><span>{item.name}</span></button>)}</div> : <p className="text-muted mt-3">Nenhuma referência marcada ainda.</p>}
+              </article>;
+            })}
           </div>}
-          <div className="notebook-footer"><p role={storageError ? 'status' : undefined}>{storageError ? 'Não foi possível guardar as marcações neste navegador. Você ainda pode comparar os favoritos enquanto esta página estiver aberta.' : 'Suas marcações ficam neste aparelho. Cada um pode fazer as suas escolhas.'}</p>{totalChoices > 0 && <button type="button" className="text-link" onClick={() => setChoices({ names: [], references: [] })}>Limpar marcações</button>}</div>
+          <div className="notebook-footer"><p>As escolhas são compartilhadas e atualizadas automaticamente. Usem o mesmo link do caderno; quem tem esse link pode participar.</p>{shared.person && (choices.names.length + choices.references.length) > 0 && <button type="button" className="text-link" disabled={shared.isBusy || shared.failedKeys.size > 0} onClick={shared.clearPerson}>Limpar minhas marcações</button>}</div>
           <div className="next-step"><span className="eyebrow">DEPOIS DA ESCOLHA</span><p>Pesquisar os nomes finalistas. Definir o caminho visual.<br className="hidden md:block" /> E começar a desenhar uma logo que seja só nossa.</p></div>
         </section>
       </main>
       <footer className="site-footer"><div className="page-width flex flex-wrap items-center justify-between gap-4"><span className="font-display text-xl">Nossa batataria, desde a primeira ideia.</span><span className="text-sm">Senador Canedo / Goiás · Projeto em construção</span></div></footer>
-      <ReferenceDialog reference={openReference} onClose={() => setOpenReference(null)} selected={openReference ? choices.references.includes(openReference.id) : false} onFavorite={() => { if (openReference) toggle('references', openReference.id); }} />
+      <ReferenceDialog reference={openReference} onClose={() => setOpenReference(null)} selected={openReference ? choices.references.includes(openReference.id) : false} onFavorite={() => { if (openReference) toggle('references', openReference.id); }} disabled={openReference ? blocked('references', openReference.id) : true} pending={openReference ? pending('references', openReference.id) : false} />
     </>
   );
 }

@@ -30,6 +30,12 @@ O workflow `.github/workflows/pages.yml` publica `site/dist` no GitHub Pages. Os
 - `assets/referencias/fontes.json`: fontes das imagens pesquisadas em 05/10/2026.
 - `site/public/referencias/`: cópias das imagens para a apresentação.
 
-Os favoritos ficam no navegador de cada visitante, sem sincronização entre aparelhos. Não há envio de escolhas ou coleta de informações pessoais.
+Os favoritos são salvos online, em um caderno identificado pelo parâmetro `caderno` no link. O site mostra as escolhas do filho e da mãe separadamente e atualiza a cada 10 segundos, ao voltar para a aba e após salvar. Só a preferência de identidade (Eu ou Mãe) fica no navegador.
+
+Abra [o site](https://murillou4.github.io/restaurante-identidade/), escolha quem está marcando e use **Copiar link para minha mãe**. É preciso compartilhar o link completo do caderno: abrir apenas a página inicial em outro aparelho cria outro caderno. Quem tem o link pode ler e alterar as escolhas, sem conta ou senha.
+
+`site/src/useSharedChoices.js` conecta o GitHub Pages à API hospedada em Sites, com persistência SQLite (D1). As gravações usam valores explícitos e o site só confirma um favorito depois da resposta do servidor. Falhas oferecem uma tentativa de repetição e não substituem as últimas escolhas confirmadas.
+
+O código do backend é mantido no projeto de hospedagem separado `shared-backend/`, ignorado neste repositório. Ele aceita quatro nomes, dez referências e as identidades `eu`/`mae`; cada caderno usa um UUID aleatório no link. Não são solicitados nome pessoal, e-mail, telefone ou endereço.
 
 As imagens de referência pertencem aos respectivos donos; nenhuma é a logo deste projeto. Não foram geradas novas imagens para o site.

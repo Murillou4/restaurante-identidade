@@ -162,6 +162,8 @@ Os endereços originais das imagens e das páginas estão em [fontes.json](E:/De
 | 05/10/2026 | Sobremesas ficam como possibilidade futura | Confirmado |
 | 05/10/2026 | Buscar logo acolhedora e referências reais, sem imagens geradas por IA | Confirmado |
 | 05/10/2026 | Nomes, caminhos visuais e paleta deste documento | Sugestões para avaliação |
+| 05/10/2026 | Criar um caderno visual no GitHub Pages para comparar nomes e referências | Confirmado |
+| 05/10/2026 | Compartilhar os favoritos online, separando as escolhas do filho e da mãe pelo mesmo link | Confirmado |
 
 ## 8. Próximas decisões
 
@@ -174,3 +176,5 @@ Os endereços originais das imagens e das páginas estão em [fontes.json](E:/De
 **Suas referências preferidas:** a registrar.  
 **Referências preferidas da mãe:** a registrar.  
 **Elementos que os dois querem evitar:** a registrar.
+
+O [caderno visual](https://murillou4.github.io/restaurante-identidade/) permite marcar as preferências. Para ver as mesmas escolhas em aparelhos diferentes, usem o link completo criado pelo botão **Copiar link para minha mãe**. Os favoritos são salvos online e são preferências para a conversa; não tornam um nome ou uma direção visual uma decisão final.
