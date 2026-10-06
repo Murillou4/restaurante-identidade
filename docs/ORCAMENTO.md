@@ -6,13 +6,15 @@ A referência de implementação é o [catálogo](../site/src/budgetCatalog.js),
 
 ## Como usar o caderno juntos
 
-1. Abrir o mesmo link completo do caderno nos dois aparelhos e escolher **Eu (filho)** ou **Mãe**.
+1. Abrir o mesmo link completo do caderno nos dois aparelhos. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
 2. Comparar uma composição: queijo e de um a três recheios. Conferir a divisão dos recheios e o custo por porção.
 3. Atualizar preços, pesos dos pacotes e rendimento com as compras e os testes reais. Ajustar as receitas e os custos da operação.
 4. Informar o preço que pretendem praticar, o volume mensal e as taxas aplicáveis ao canal de venda.
 5. Salvar e aguardar a confirmação **“Orçamento salvo para vocês dois.”** No outro aparelho, conferir a mesma composição e os valores confirmados.
 
 As edições recalculam a simulação na aba atual; tornam-se compartilhadas depois da resposta do servidor. Em uma falha de salvamento, as edições continuam na aba e podem ser reenviadas. Se outro aparelho salvar primeiro, o caderno carrega os valores novos e preserva o rascunho para revisão antes de salvar novamente.
+
+O seletor **Eu (filho) / Mãe** fica somente na Galeria e identifica quem marca os favoritos de nome e logo.
 
 O frontend se conecta a uma API em um **backend separado**, com o orçamento associado ao mesmo identificador de caderno do link. Quem tem esse link pode acessar e editar o caderno. O salvamento de um orçamento registra uma simulação de planejamento; a aprovação da receita e do preço deve ser combinada pelos dois.
 

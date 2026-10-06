@@ -30,9 +30,9 @@ O workflow `.github/workflows/pages.yml` publica `site/dist` no GitHub Pages. Os
 - `assets/referencias/fontes.json`: fontes das imagens pesquisadas em 05/10/2026.
 - `site/public/referencias/`: cópias das imagens para a apresentação.
 
-Favoritos e orçamento são salvos online em um caderno identificado pelo parâmetro `caderno` no link. A Galeria mostra as escolhas do filho e da mãe separadamente e atualiza a cada 10 segundos. O orçamento consulta mudanças a cada 15 segundos, ao voltar para a aba e após salvar. Só a preferência de identidade (Eu ou Mãe) fica no navegador.
+Favoritos e orçamento são salvos online em um caderno identificado pelo parâmetro `caderno` no link. A Galeria mostra as escolhas do filho e da mãe separadamente e atualiza a cada 10 segundos. O seletor **Eu (filho) / Mãe** aparece somente na Galeria e identifica quem marca os favoritos; essa preferência fica no navegador. O orçamento é único para os dois e consulta mudanças a cada 15 segundos, ao voltar para a aba e após salvar.
 
-Abra [o site](https://murillou4.github.io/restaurante-identidade/), escolha quem está marcando e use **Copiar link compartilhado**. É preciso compartilhar o link completo do caderno: abrir apenas a página inicial em outro aparelho cria outro caderno. Quem tem o link pode ler e alterar os dados, sem conta ou senha.
+Abra [o site](https://murillou4.github.io/restaurante-identidade/) e use **Copiar link compartilhado**. É preciso compartilhar o link completo do caderno: abrir apenas a página inicial em outro aparelho cria outro caderno. Para marcar favoritos, selecione quem está marcando na Galeria. Quem tem o link pode ler e alterar os dados, sem conta ou senha.
 
 No Orçamento, mudanças alteram a simulação imediatamente; clique em **Salvar orçamento** para guardar os dados para os dois aparelhos. Edições sem salvar permanecem na aba e são protegidas de atualizações de outro aparelho. Uma revisão do servidor impede sobrescrever silenciosamente um orçamento antigo. A primeira gravação guarda também os valores iniciais usados na simulação.
 
