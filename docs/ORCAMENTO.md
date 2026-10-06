@@ -8,7 +8,7 @@ A referência de implementação é o [catálogo](../site/src/budgetCatalog.js),
 
 1. Abrir o mesmo link completo do caderno nos dois aparelhos. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
 2. Comparar uma composição: queijo e de um a três recheios. Os campos mostram o custo dos ingredientes da quantidade escolhida; os recheios selecionados mostram peso e custo. A tabela completa continua abaixo para conferir a compra de cada ingrediente.
-3. Atualizar preços, pesos dos pacotes e rendimento com as compras e os testes reais. Ajustar as receitas e os custos da operação.
+3. Em **Custos e preços**, editar **Preço que você encontrou** e **Quantidade que esse preço compra** com os valores do supermercado. Se a batata custa R$ 5,99/kg, informar 5,99 e 1000 g; se o queijo custa R$ 18,90 por pacote de 500 g, informar 18,90 e 500 g. Usar 1000 sem separador de milhar nos campos. Ajustar rendimento, receitas e custos da operação com os testes reais.
 4. Informar o preço que pretendem praticar e o volume mensal. Escolher o canal no seletor **Canal para simular** e comparar as taxas em **Canais e iFood**.
 5. Salvar e aguardar a confirmação **“Orçamento salvo para vocês dois.”** No outro aparelho, conferir a mesma composição e os valores confirmados.
 

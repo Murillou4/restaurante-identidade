@@ -91,6 +91,10 @@
 .budget-tag.status-estimate { background: #eee7db; }
 .budget-tag.status-unavailable { background: #f2e5da; border-color: #d1aa92; color: #873d28; }
 .budget-search { margin-block: 25px 32px; }
+.budget-price-guide { padding: 16px 18px; background: #eee7db; border-left: 3px solid var(--color-clay); font-size: 13px; line-height: 1.7; }
+.budget-price-guide strong { font-weight: 500; }
+.budget-price-guide p { margin-top: 5px; color: var(--color-muted); }
+.budget-price-guide b { color: var(--color-ink); font-weight: 500; }
 .budget-cost-group { margin-top: 35px; }
 .budget-cost-group > h3 { margin-bottom: 8px; }
 .budget-ingredient { padding-block: 25px; border-bottom: 1px solid #ddd4c6; }

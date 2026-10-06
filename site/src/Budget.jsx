@@ -111,8 +111,8 @@ function IngredientRow({ item, values, fieldProps }) {
       {edited && <p className="budget-source-note">Fonte original: {statuses[item.status].toLowerCase()}. O valor acima foi ajustado no caderno.</p>}
     </div>
     <div className="budget-ingredient-inputs">
-      <NumberField {...fieldProps} path={`ingredients.${item.id}.price`} label="Preço do pacote" value={data.price} unit="R$" context={item.name} />
-      <NumberField {...fieldProps} path={`ingredients.${item.id}.packageSize`} label={packaging ? 'Unidades no pacote' : 'Peso ou volume do pacote'} value={data.packageSize} unit={item.unit} positive context={item.name} />
+      <NumberField {...fieldProps} path={`ingredients.${item.id}.price`} label="Preço que você encontrou" value={data.price} unit="R$" context={item.name} help="Valor total da quantidade informada ao lado." />
+      <NumberField {...fieldProps} path={`ingredients.${item.id}.packageSize`} label="Quantidade que esse preço compra" value={data.packageSize} unit={item.unit} positive context={item.name} help={packaging ? 'Quantidade de unidades no pacote.' : item.unit === 'g' ? 'Preço por kg? Use 1000 g. Para um pacote, use seu peso em gramas.' : 'Preço por litro? Use 1000 ml. Para uma garrafa, use seu volume em ml.'} />
       {packaging ? <NumberField {...fieldProps} path={`ingredients.${item.id}.amount`} label="Por pedido" value={data.amount} unit="un" context={item.name} /> : item.id === 'batata' ? <div className="budget-fixed-field"><span>Base de peso</span><strong>100% da compra</strong><small>Peso cru comprado. A redução no forno não diminui o custo da batata.</small></div> : <NumberField {...fieldProps} path={`ingredients.${item.id}.yieldPercent`} label="Rendimento após preparo" value={data.yieldPercent} unit="%" positive max={100} context={item.name} />}
     </div>
   </article>;
@@ -226,7 +226,9 @@ export default function Budget({ sharedBudget }) {
         <div className="budget-table-scroll"><table className="budget-portion-table"><thead><tr><th scope="col">Ingrediente</th><th scope="col">Peso da receita</th><th scope="col">Para comprar</th><th scope="col">Custo</th></tr></thead><tbody>{result.rows.map((row) => <tr key={row.id}><th scope="row">{row.name}{row.id === 'batata' ? ' (crua)' : ''}</th><td>{number(row.quantity)} {row.unit}</td><td>{number(row.purchaseQuantity)} {row.unit}</td><td>{money(row.cost)}</td></tr>)}</tbody></table></div>
       </>}
       {tab === 'custos' && <>
-        <div className="budget-section-heading"><h3>Preços e rendimento</h3><p>Fontes coletadas em {RESEARCH_DATE}. Troquem as referências pelos valores das compras de vocês.</p></div>
+        <div className="budget-section-heading"><h3>Atualize com o preço do supermercado</h3><p>Todos os campos abaixo são editáveis. Toque no preço, digite o valor que encontrou e clique em <strong>Salvar orçamento</strong> para sua mãe receber a atualização também.</p></div>
+        <div className="budget-price-guide"><strong>O preço e a quantidade precisam corresponder.</strong><p>Batata a R$ 5,99/kg? Informe <b>5,99</b> no preço e <b>1000 g</b> na quantidade. Queijo a R$ 18,90 no pacote de 500 g? Informe <b>18,90</b> e <b>500 g</b>. O custo da batata e o lucro recalculam na hora.</p></div>
+        <p className="budget-help">As referências iniciais foram coletadas em {RESEARCH_DATE}. Você pode substituir qualquer uma pelo preço da sua compra.</p>
         <div className="budget-status-legend"><span className="budget-tag status-reference">Referência de loja</span><span className="budget-tag status-estimate">Hipótese inicial</span><span className="budget-tag status-unavailable">Preço sem estoque</span></div>
         <p className="budget-help">O rendimento é a parte que sobra depois de limpar, escorrer ou cozinhar. Os percentuais iniciais são hipóteses; pesem o lote para ajustar. Frete de compra não incluído nos preços pesquisados.</p>
         <div className="budget-field budget-search"><label htmlFor="budget-search">Buscar ingrediente ou embalagem</label><input id="budget-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Frango, muçarela, bandeja…" /></div>
