@@ -1,0 +1,182 @@
+.budget { padding-block: 48px 70px; font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+.budget h2, .budget h3, .budget h4, .budget legend { font-family: var(--font-sans); }
+.budget-header { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 28px; margin-bottom: 28px; }
+.budget-kicker { color: var(--color-clay); font-size: 11px; font-weight: 600; letter-spacing: .13em; }
+.budget-header h1 { margin-top: 10px; font-size: clamp(29px, 3.2vw, 41px); font-weight: 550; letter-spacing: -.04em; line-height: 1.15; }
+.budget-header p { max-width: 620px; margin-top: 12px; color: var(--color-muted); font-size: 17px; line-height: 1.6; }
+.budget-research-date { border-left: 1px solid #d8cec0; padding-left: 24px; font-size: 13px; }
+.budget-research-date strong, .budget-research-date span { display: block; }
+.budget-research-date strong { font-weight: 500; }
+.budget-research-date span { margin-top: 5px; color: var(--color-muted); }
+.budget-savebar { position: sticky; top: var(--workspace-header-height, 112px); z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 17px 20px; background: #eee7db; border: 1px solid #d8cec0; border-radius: 5px; margin-bottom: 24px; }
+.budget-save-status { display: block; font-weight: 500; font-size: 15px; }
+.budget-savebar p { color: var(--color-muted); font-size: 13px; margin-top: 5px; line-height: 1.5; }
+.budget-save-actions { display: flex; align-items: center; gap: 10px; flex: none; }
+.budget-button { display: inline-flex; justify-content: center; align-items: center; gap: 8px; min-height: 43px; padding: 11px 15px; font-size: 14px; font-weight: 500; border-radius: 4px; white-space: nowrap; border: 1px solid transparent; }
+.budget-button.primary { color: #fffaf2; background: var(--color-clay); }
+.budget-button.primary:hover:not(:disabled) { background: #853e29; }
+.budget-button.secondary { border-color: #d4c8b7; background: #fbf8f1; }
+.budget-button.secondary:hover:not(:disabled) { border-color: var(--color-clay); }
+.budget-alert { display: flex; align-items: flex-start; gap: 11px; padding: 16px 18px; border-left: 3px solid var(--color-clay); background: #f2e5da; margin-bottom: 17px; font-size: 14px; line-height: 1.6; }
+.budget-alert svg { flex: none; margin-top: 2px; }
+.budget-alert.error { color: #873d28; }
+.budget-alert.warning { background: #eee7db; color: var(--color-ink); }
+.budget-alert strong { display: block; font-weight: 500; }
+.budget-alert ul { list-style: disc; padding-left: 18px; margin-top: 5px; }
+.budget-conflicts { border: 1px solid #d1aa92; background: #fbf8f1; padding: 20px; margin-bottom: 22px; }
+.budget-conflicts h3 { font-size: 18px; font-weight: 500; }
+.budget-conflicts > p { font-size: 14px; color: var(--color-muted); line-height: 1.6; margin-top: 8px; margin-bottom: 15px; }
+.budget-conflicts table { min-width: 420px; }
+.budget-conflicts td { min-width: 110px; }
+.budget-tabs { display: flex; border-bottom: 1px solid #d8cec0; gap: 6px; margin-bottom: 30px; overflow-x: auto; }
+.budget-tabs button { padding: 14px 20px; min-height: 49px; flex: none; font-size: 15px; border-bottom: 2px solid transparent; }
+.budget-tabs button[aria-selected="true"] { border-color: var(--color-clay); color: var(--color-clay); font-weight: 500; }
+.budget-tabs button:hover { background: #eee7db; }
+.budget-tabs button:focus-visible { outline-offset: -4px; }
+.budget-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px; align-items: start; }
+.budget-editor { min-width: 0; }
+.budget-editor:focus-visible { outline: 2px solid #c3937d; outline-offset: 10px; }
+.budget-section-heading { margin-bottom: 24px; }
+.budget-section-heading h3, .budget-cost-group > h3 { font-size: 22px; font-weight: 550; line-height: 1.3; letter-spacing: -.02em; }
+.budget-section-heading p { margin-top: 8px; color: var(--color-muted); font-size: 15px; line-height: 1.65; max-width: 610px; }
+.budget-fieldset { border: 0; border-top: 1px solid #ddd4c6; margin: 30px 0; padding-top: 20px; min-width: 0; }
+.budget-fieldset legend { padding-right: 16px; font-size: 16px; font-weight: 500; }
+.budget-fieldset legend > span { margin-left: 9px; color: var(--color-muted); font-size: 13px; font-weight: 400; }
+.budget-form-grid, .budget-operation-grid, .budget-recipe-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 18px; }
+.budget-field { min-width: 0; }
+.budget-field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 7px; line-height: 1.5; }
+.budget-input-wrap { display: flex; align-items: center; border: 1px solid #d0c4b3; border-radius: 4px; background: #fffdf8; }
+.budget-field input, .budget-field select { width: 100%; min-width: 0; min-height: 43px; padding: 10px 12px; font-family: inherit; font-size: 16px; color: var(--color-ink); border-radius: 4px; }
+.budget-input-wrap input { border: 0; background: transparent; }
+.budget-input-wrap > span { color: var(--color-muted); padding-right: 11px; font-size: 13px; white-space: nowrap; }
+.budget-field > input, .budget-field select { border: 1px solid #d0c4b3; background: #fffdf8; }
+.budget-field input:focus, .budget-field select:focus { outline: 2px solid var(--color-clay); outline-offset: 2px; }
+.budget-field small { display: block; margin-top: 7px; font-size: 12px; color: var(--color-muted); line-height: 1.55; }
+.budget-field .budget-field-error { color: #873d28; }
+.budget-field.has-error .budget-input-wrap { border-color: #a44d31; }
+.budget-field input:disabled, .budget-field select:disabled { opacity: .55; }
+.budget-fixed-field > span { display: block; font-size: 13px; font-weight: 500; margin-bottom: 7px; }
+.budget-fixed-field > strong { display: block; font-size: 14px; font-weight: 500; padding-block: 12px; }
+.budget-fixed-field > small { display: block; font-size: 12px; color: var(--color-muted); line-height: 1.6; }
+.budget-help { color: var(--color-muted); font-size: 13px; line-height: 1.7; margin-top: 12px; }
+.budget-filling-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin-top: 19px; }
+.budget-filling { display: flex; align-items: center; gap: 10px; padding: 14px 0; border-bottom: 1px solid #e4dbce; font-size: 14px; cursor: pointer; }
+.budget-filling input { accent-color: var(--color-clay); width: 18px; height: 18px; flex: none; }
+.budget-filling input:focus-visible { outline: 2px solid var(--color-clay); outline-offset: 4px; }
+.budget-filling small { display: block; margin-top: 3px; font-size: 11px; color: var(--color-muted); }
+.budget-filling:has(input:disabled):not(.selected) { opacity: .55; cursor: default; }
+.budget-filling .budget-stock-note { color: #873d28; }
+.budget-portions { display: flex; flex-wrap: wrap; gap: 12px 25px; margin-top: 18px; padding: 15px 17px; background: #eee7db; border-radius: 4px; }
+.budget-portions > span { color: var(--color-muted); font-size: 12px; line-height: 1.6; }
+.budget-portions strong { display: block; font-size: 17px; font-weight: 500; color: var(--color-ink); }
+.budget-table-scroll { width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; contain: inline-size; }
+.budget table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+.budget table th, .budget table td { padding: 13px 10px; border-bottom: 1px solid #ddd4c6; line-height: 1.5; vertical-align: top; }
+.budget table thead th { color: var(--color-muted); font-weight: 400; font-size: 12px; white-space: nowrap; }
+.budget table tbody th { font-weight: 500; }
+.budget-portion-table th:first-child, .budget-portion-table td:first-child { padding-left: 0; }
+.budget-portion-table th:not(:first-child), .budget-portion-table td { text-align: right; white-space: nowrap; }
+.budget-comparison { min-width: 650px; }
+.budget-comparison caption { text-align: left; padding-bottom: 14px; color: var(--color-muted); font-size: 13px; }
+.budget-comparison tbody th { min-width: 140px; }
+.budget-comparison td:nth-child(2) { min-width: 185px; color: var(--color-muted); }
+.budget-comparison td:nth-child(3), .budget-comparison td:nth-child(4) { white-space: nowrap; }
+.budget-comparison td small { display: block; margin-top: 4px; font-size: 11px; }
+.budget-comparison .budget-button { min-height: 36px; padding: 7px 10px; font-size: 12px; }
+.budget-status-legend { display: flex; gap: 8px; flex-wrap: wrap; }
+.budget-tag { display: inline-flex; font-size: 11px; padding: 3px 7px; border: 1px solid #d6cbbb; border-radius: 3px; color: var(--color-muted); line-height: 1.5; }
+.budget-tag.status-estimate { background: #eee7db; }
+.budget-tag.status-unavailable { background: #f2e5da; border-color: #d1aa92; color: #873d28; }
+.budget-search { margin-block: 25px 32px; }
+.budget-cost-group { margin-top: 35px; }
+.budget-cost-group > h3 { margin-bottom: 8px; }
+.budget-ingredient { padding-block: 25px; border-bottom: 1px solid #ddd4c6; }
+.budget-ingredient h4 { font-size: 16px; font-weight: 500; }
+.budget-source-status { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 12px; margin-top: 7px; font-size: 12px; color: var(--color-muted); }
+.budget-unit-price { margin-top: 11px; font-size: 14px; font-weight: 500; }
+.budget-unit-price > span { color: var(--color-muted); font-size: 12px; font-weight: 400; }
+.budget-source-note { display: block; margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--color-muted); max-width: 650px; }
+.budget-source-link { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; min-height: 28px; text-decoration: underline; text-underline-offset: 3px; margin-top: 4px; }
+.budget-source-link:hover { color: var(--color-clay); }
+.budget-ingredient-inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 17px; }
+.budget-recipe-inputs { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 20px; }
+.budget-recipe { margin-top: 30px; }
+.recipe-heading { margin-top: 42px; }
+.budget-operation-note { border-top: 1px solid #ddd4c6; margin-top: 30px; padding-top: 22px; font-size: 14px; line-height: 1.7; }
+.budget-operation-note strong { font-weight: 500; }
+.budget-operation-note p { margin-top: 9px; color: var(--color-muted); }
+.budget-empty { padding: 30px 25px; margin-top: 28px; background: #eee7db; }
+.budget-empty h3 { font-size: 19px; font-weight: 500; }
+.budget-empty p { color: var(--color-muted); font-size: 14px; margin-top: 8px; line-height: 1.6; }
+.budget-empty button { margin-top: 18px; }
+.budget-results { padding: 26px; border: 1px solid #d8cec0; border-radius: 5px; background: #fbf8f1; }
+.budget-results-heading h3 { font-size: 24px; font-weight: 550; letter-spacing: -.025em; margin-top: 7px; }
+.budget-results-heading p { font-size: 12px; line-height: 1.6; color: var(--color-muted); margin-top: 7px; }
+.budget-main-metrics { display: grid; gap: 20px; padding-block: 23px; margin-bottom: 4px; border-bottom: 1px solid #ddd4c6; }
+.budget-main-metrics > div > span, .budget-net-result > span { display: block; font-size: 13px; }
+.budget-main-metrics strong { display: block; font-size: 32px; line-height: 1.2; letter-spacing: -.035em; font-weight: 550; margin-top: 4px; }
+.budget-main-metrics > div:last-child strong { color: var(--color-clay); }
+.budget-main-metrics small { display: block; margin-top: 6px; color: var(--color-muted); font-size: 12px; line-height: 1.6; }
+.budget-results > .budget-field { margin-top: 24px; }
+.budget-breakdown { margin-top: 24px; }
+.budget-breakdown > div { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; font-size: 12px; padding-block: 7px; }
+.budget-breakdown dt { color: var(--color-muted); line-height: 1.5; }
+.budget-breakdown dd { white-space: nowrap; }
+.budget-breakdown .budget-subtotal { border-top: 1px solid #ddd4c6; border-bottom: 1px solid #ddd4c6; padding-block: 12px; margin-block: 8px; font-weight: 500; }
+.budget-breakdown .budget-subtotal dt { color: var(--color-ink); }
+.budget-contribution { margin-top: 18px; padding-top: 18px; border-top: 1px solid #ddd4c6; font-size: 12px; }
+.budget-contribution > span { display: block; color: var(--color-muted); }
+.budget-contribution strong { display: block; font-size: 20px; font-weight: 500; margin-top: 5px; }
+.budget-contribution small { display: block; color: var(--color-muted); font-size: 11px; line-height: 1.6; margin-top: 5px; }
+.budget-net-result { background: #eee7db; margin: 22px -12px 0; padding: 18px 12px; border-radius: 4px; }
+.budget-net-result strong { display: block; font-size: 27px; font-weight: 550; margin-top: 5px; letter-spacing: -.025em; }
+.budget-net-result small { display: block; font-size: 11px; line-height: 1.6; color: var(--color-muted); margin-top: 5px; }
+.budget-net-result.is-negative strong { color: #873d28; }
+.budget-monthly { display: grid; gap: 17px; margin-top: 22px; }
+.budget-monthly span { display: block; font-size: 12px; color: var(--color-muted); }
+.budget-monthly strong { display: block; font-size: 19px; font-weight: 500; margin-top: 5px; }
+.budget-estimate-note { margin-top: 22px; font-size: 11px; color: var(--color-muted); line-height: 1.7; }
+.budget-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .budget-workspace { grid-template-columns: minmax(0, 1fr) 290px; gap: 25px; }
+  .budget-results { padding: 21px; }
+  .budget-ingredient-inputs, .budget-recipe-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .budget-savebar { padding-inline: 16px; }
+  .budget-savebar p { max-width: 300px; }
+}
+@media (max-width: 767px) {
+  .budget { padding-block: 34px 48px; }
+  .budget-header { grid-template-columns: 1fr; gap: 17px; }
+  .budget-header h1 { font-size: 31px; }
+  .budget-header p { font-size: 16px; }
+  .budget-research-date { border-left: 0; padding-left: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .budget-research-date span { margin-top: 0; }
+  .budget-savebar { top: var(--workspace-header-height, 112px); display: block; padding: 14px; margin-bottom: 20px; }
+  .budget-savebar p { font-size: 11px; }
+  .budget-save-actions { margin-top: 12px; gap: 8px; }
+  .budget-save-actions .budget-button { flex: 1; min-height: 42px; padding-inline: 10px; font-size: 13px; }
+  .budget-save-status { font-size: 14px; }
+  .budget-tabs { margin-bottom: 25px; gap: 0; }
+  .budget-tabs button { font-size: 14px; padding-inline: 15px; }
+  .budget-workspace { grid-template-columns: 1fr; gap: 30px; }
+  .budget-results { padding: 24px; }
+  .budget-main-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+  .budget-main-metrics strong { font-size: 27px; }
+  .budget-main-metrics small { font-size: 11px; }
+  .budget-form-grid, .budget-operation-grid { gap: 19px 14px; }
+  .budget-ingredient-inputs, .budget-recipe-inputs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 12px; }
+  .budget-ingredient-inputs .budget-field:nth-child(3) { grid-column: 1 / -1; max-width: calc(50% - 6px); }
+  .budget-filling-list { gap: 0 12px; }
+  .budget-filling { font-size: 13px; }
+  .budget-field label { font-size: 12px; }
+  .budget-field small { font-size: 11px; }
+  .budget-monthly { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .budget-alert { padding: 13px; font-size: 13px; }
+}
+@media (max-width: 359px) {
+  .budget-main-metrics, .budget-monthly { grid-template-columns: 1fr; }
+  .budget-form-grid, .budget-operation-grid { grid-template-columns: 1fr; }
+  .budget-filling-list { grid-template-columns: 1fr; }
+  .budget-tabs button { font-size: 13px; padding-inline: 12px; }
+  .budget-save-actions .budget-button { font-size: 12px; }
+}

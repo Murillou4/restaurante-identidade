@@ -1,8 +1,8 @@
 # Restaurante — nome, logo e definições
 
-Atualizado em **05/10/2026**. Documento de trabalho para vocês dois construírem a marca e registrarem as decisões do restaurante.
+Atualizado em **06/10/2026**. Documento de trabalho para vocês dois organizarem custos, montagem, marca e decisões do restaurante.
 
-**Prioridade atual:** escolher o nome e a direção da logo.
+**Prioridade atual:** testar o orçamento e a montagem das batatas. A escolha do nome e da direção da logo continua na Galeria.
 
 ## 1. O que já está definido
 
@@ -15,7 +15,7 @@ Atualizado em **05/10/2026**. Documento de trabalho para vocês dois construíre
 | Atendimento | Apenas delivery | Confirmado |
 | Cidade de entrega | Senador Canedo, Goiás | Confirmado |
 | Responsáveis pelo projeto | Você e sua mãe | Confirmado |
-| Nome | Ainda não há favorito | A escolher |
+| Nome | Filho prefere Capricho de Casa; mãe prefere Caprichada | Favoritos registrados; decisão final em aberto |
 | Logo | Deve transmitir conforto e acolhimento | Preferência confirmada |
 | Referências | Marcas e trabalhos de design reais, com fonte | Preferência confirmada |
 | Imagens geradas por IA | Não usar como referência nem como proposta de logo | Preferência confirmada |
@@ -55,11 +55,13 @@ Estas são sugestões para discussão, não decisões nem nomes com disponibilid
 | **Recheio de Casa** · Batataria | Recheio como protagonista e sensação caseira | Sem o complemento pode parecer outro tipo de comida |
 | **Capricho de Casa** · Batata recheada | Cuidado e conforto, com espaço para outros produtos | É mais longo e não identifica batata sozinho |
 
-**Sua escolha:** a registrar.  
-**Escolha da mãe:** a registrar.  
+**Seu favorito:** Capricho de Casa, consultado no caderno compartilhado em 06/10/2026.
+
+**Favorito da mãe:** Caprichada, consultado no caderno compartilhado em 06/10/2026.
+
 **Nome escolhido pelos dois:** a definir.
 
-**Minha recomendação inicial:** começar comparando **Caprichada** e **Batata de Casa**. O primeiro concentra cuidado em um nome curto; o segundo comunica acolhimento e o produto imediatamente. Ambos ainda precisam ser avaliados pelos dois e pesquisados antes de uma escolha final.
+**Próxima conversa sobre o nome:** comparar os favoritos **Caprichada** e **Capricho de Casa**, testar como soam em voz alta e pesquisar a disponibilidade antes de uma escolha final.
 
 ### Como comparar os finalistas
 
@@ -142,8 +144,8 @@ Os endereços originais das imagens e das páginas estão em [fontes.json](E:/De
 
 | Assunto | Situação |
 | --- | --- |
-| Sabores e recheios iniciais | A definir |
-| Tamanho das porções | A definir |
+| Sabores e recheios iniciais | Seis sugestões da conversa de 06/10 e uma vegetariana; comparar e testar no orçamento |
+| Tamanho das porções | Hipótese editável: batata crua 450 g + queijo 40 g + recheios 150 g; validar no teste |
 | Bebidas que serão vendidas | A definir |
 | Preços e combos | A definir |
 | Dias e horários de atendimento | A definir |
@@ -164,6 +166,12 @@ Os endereços originais das imagens e das páginas estão em [fontes.json](E:/De
 | 05/10/2026 | Nomes, caminhos visuais e paleta deste documento | Sugestões para avaliação |
 | 05/10/2026 | Criar um caderno visual no GitHub Pages para comparar nomes e referências | Confirmado |
 | 05/10/2026 | Compartilhar os favoritos online, separando as escolhas do filho e da mãe pelo mesmo link | Confirmado |
+| 06/10/2026 | Favorito de nome do filho: Capricho de Casa | Preferência registrada no caderno; nome ainda não escolhido |
+| 06/10/2026 | Favoritos da mãe: Caprichada, Donna Batata e Jão Batata | Preferências registradas no caderno; logo ainda não escolhida |
+| 06/10/2026 | Site de uso interno para orçamento e organização, com a identidade guardada em Galeria | Confirmado |
+| 06/10/2026 | Simular montagem por base de batata, escolha de queijo e até três recheios | Direção pedida pelo filho; porções e receitas em teste |
+| 06/10/2026 | Frango cremoso, frango com bacon, calabresa cremosa, strogonoff, carne de sol e Suprema da Casa | Sugestões da mãe, sem cardápio final aprovado |
+| 06/10/2026 | Incluir uma opção vegetariana | Sugestão da mãe; composição inicial de milho e brócolis para testar |
 
 ## 8. Próximas decisões
 
@@ -173,8 +181,12 @@ Os endereços originais das imagens e das páginas estão em [fontes.json](E:/De
 4. Escolher o nome e uma direção visual.
 5. Desenvolver a logo e conferir sua leitura no avatar, cardápio e adesivo de embalagem.
 
-**Suas referências preferidas:** a registrar.  
-**Referências preferidas da mãe:** a registrar.  
+**Suas referências preferidas:** nenhuma marcada no registro consultado em 06/10/2026.
+
+**Referências preferidas da mãe:** Donna Batata e Jão Batata.
+
 **Elementos que os dois querem evitar:** a registrar.
 
-O [caderno visual](https://murillou4.github.io/restaurante-identidade/) permite marcar as preferências. Para ver as mesmas escolhas em aparelhos diferentes, usem o link completo criado pelo botão **Copiar link para minha mãe**. Os favoritos são salvos online e são preferências para a conversa; não tornam um nome ou uma direção visual uma decisão final.
+O [caderno do restaurante](https://murillou4.github.io/restaurante-identidade/) reúne Orçamento, Galeria e Planejamento. Para ver os mesmos dados em aparelhos diferentes, usem o link completo criado pelo botão **Copiar link compartilhado**. Favoritos são salvos online; edições de custos e receitas são compartilhadas ao clicar em **Salvar orçamento**. Nenhuma preferência torna um nome ou uma direção visual uma decisão final.
+
+O modelo de orçamento e suas hipóteses estão em [ORCAMENTO.md](E:/Dev/Trabalho/Restaurante/docs/ORCAMENTO.md), e as fontes de preços em [PRECOS-REFERENCIA.md](E:/Dev/Trabalho/Restaurante/docs/PRECOS-REFERENCIA.md). Estes registros organizam o trabalho; os pesos e preços finais precisam ser conferidos com as compras e os testes de vocês.

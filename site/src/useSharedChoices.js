@@ -261,7 +261,7 @@ export function useSharedChoices() {
     const url = new URL(window.location.href);
     url.searchParams.set('caderno', roomId);
     url.searchParams.set('pessoa', 'mae');
-    url.hash = 'projeto';
+    url.hash = 'orcamento';
     return url.href;
   })();
 
