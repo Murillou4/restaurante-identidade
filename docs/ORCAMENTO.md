@@ -7,7 +7,7 @@ A referência de implementação é o [catálogo](../site/src/budgetCatalog.js),
 ## Como usar o caderno juntos
 
 1. Abrir o mesmo link completo do caderno nos dois aparelhos. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
-2. Comparar uma composição: queijo e de um a três recheios. Conferir a divisão dos recheios e o custo por porção.
+2. Comparar uma composição: queijo e de um a três recheios. Os campos mostram o custo dos ingredientes da quantidade escolhida; os recheios selecionados mostram peso e custo. A tabela completa continua abaixo para conferir a compra de cada ingrediente.
 3. Atualizar preços, pesos dos pacotes e rendimento com as compras e os testes reais. Ajustar as receitas e os custos da operação.
 4. Informar o preço que pretendem praticar, o volume mensal e as taxas aplicáveis ao canal de venda.
 5. Salvar e aguardar a confirmação **“Orçamento salvo para vocês dois.”** No outro aparelho, conferir a mesma composição e os valores confirmados.

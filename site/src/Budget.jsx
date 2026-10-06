@@ -43,7 +43,7 @@ function conflictValue(path, value) {
   return currency ? `R$ ${editableNumber(value)}` : number(value, 8);
 }
 
-function NumberField({ path, label, value, edit, onValidity, unit, help, context, positive = false, max, integer = false, disabled = false }) {
+function NumberField({ path, label, value, edit, onValidity, unit, help, context, cost, positive = false, max, integer = false, disabled = false }) {
   const id = useId();
   const focused = useRef(false);
   const [draft, setDraft] = useState(() => editableNumber(value));
@@ -68,7 +68,8 @@ function NumberField({ path, label, value, edit, onValidity, unit, help, context
   };
   return <div className={`budget-field ${error ? 'has-error' : ''}`}>
     <label htmlFor={id}>{label}</label>
-    <div className="budget-input-wrap"><input id={id} name={path} type="text" inputMode={integer ? 'numeric' : 'decimal'} autoComplete="off" value={draft} disabled={disabled} aria-label={context ? `${label}: ${context}` : undefined} aria-invalid={Boolean(error)} aria-describedby={error || help ? `${id}-help` : undefined} onChange={change} onFocus={() => { focused.current = true; }} onBlur={() => { focused.current = false; if (!error) setDraft(editableNumber(value)); }} />{unit && <span aria-hidden="true">{unit}</span>}</div>
+    <div className="budget-input-wrap"><input id={id} name={path} type="text" inputMode={integer ? 'numeric' : 'decimal'} autoComplete="off" value={draft} disabled={disabled} aria-label={context ? `${label}: ${context}` : undefined} aria-invalid={Boolean(error)} aria-describedby={[cost !== undefined ? `${id}-cost` : null, error || help ? `${id}-help` : null].filter(Boolean).join(' ') || undefined} onChange={change} onFocus={() => { focused.current = true; }} onBlur={() => { focused.current = false; if (!error) setDraft(editableNumber(value)); }} />{unit && <span aria-hidden="true">{unit}</span>}</div>
+    {cost !== undefined && <small id={`${id}-cost`} className="budget-field-cost"><span>Custo da porção</span><strong>{money(error ? null : cost)}</strong></small>}
     {(error || help) && <small id={`${id}-help`} className={error ? 'budget-field-error' : ''}>{error || help}</small>}
   </div>;
 }
@@ -170,6 +171,7 @@ export default function Budget({ sharedBudget }) {
   }, []);
   const fieldProps = { edit: sharedBudget.edit, onValidity, disabled };
   const settingField = (id, label, unit, props = {}) => <NumberField key={id} {...fieldProps} path={`settings.${id}`} label={label} value={values[`settings.${id}`]} unit={unit} {...props} />;
+  const shownCost = (cost) => invalid ? null : cost;
   const applyPreset = (preset) => {
     sharedBudget.editMany({ 'simulation.fillings': [...preset.fillings], 'simulation.cheeseId': preset.cheese, 'settings.palhaGrams': preset.palha ?? 0 });
     setTab('simular');
@@ -201,13 +203,13 @@ export default function Budget({ sharedBudget }) {
       {tab === 'simular' && <>
         <div className="budget-section-heading"><h3>Monte uma batata</h3><p>Base + uma escolha de queijo + até três recheios.</p></div>
         <fieldset className="budget-fieldset"><legend>Base e complementos</legend><div className="budget-form-grid">
-          {settingField('potatoGrams', 'Batata crua por porção', 'g', { positive: true, help: 'Peso da compra, antes de assar.' })}
-          {settingField('oilMl', 'Óleo', 'ml')}{settingField('saltGrams', 'Sal', 'g')}
-          {settingField('greensGrams', 'Cheiro-verde', 'g')}{settingField('palhaGrams', 'Batata palha', 'g')}
+          {settingField('potatoGrams', 'Batata crua por porção', 'g', { positive: true, help: 'Peso da compra, antes de assar.', cost: shownCost(result.costs.base.batata) })}
+          {settingField('oilMl', 'Óleo', 'ml', { cost: shownCost(result.costs.base.oleo) })}{settingField('saltGrams', 'Sal', 'g', { cost: shownCost(result.costs.base.sal) })}
+          {settingField('greensGrams', 'Cheiro-verde', 'g', { cost: shownCost(result.costs.base['cheiro-verde']) })}{settingField('palhaGrams', 'Batata palha', 'g', { cost: shownCost(result.costs.base['batata-palha']) })}
         </div></fieldset>
-        <fieldset className="budget-fieldset"><legend>Queijo por cima</legend><div className="budget-form-grid"><div className="budget-field"><label htmlFor="budget-cheese">Escolha do queijo</label><select id="budget-cheese" value={values['simulation.cheeseId']} onChange={(event) => sharedBudget.edit('simulation.cheeseId', event.target.value)} disabled={disabled}>{cheeses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>{settingField('cheeseGrams', 'Quantidade total de queijo', 'g', { disabled: disabled || values['simulation.cheeseId'] === 'nenhum' })}</div><p className="budget-help">Separado do peso dos recheios. No queijo misto, metade muçarela e metade cheddar.</p></fieldset>
-        <fieldset className="budget-fieldset"><legend>Recheios <span>{selected.length} de 3</span></legend>{settingField('fillingTotalGrams', 'Peso total dos recheios', 'g', { positive: true })}<div className="budget-filling-list">
-          {fillings.map((item) => <label key={item.id} className={`budget-filling ${selected.includes(item.id) ? 'selected' : ''}`}><input type="checkbox" checked={selected.includes(item.id)} disabled={disabled || (!selected.includes(item.id) && selected.length >= 3) || (selected.includes(item.id) && selected.length === 1)} onChange={() => chooseFilling(item.id)} /><span>{item.name}{item.vegetarian && <small>Sem carnes</small>}{item.id === 'champignon' && <small className="budget-stock-note">Referência sem estoque</small>}</span></label>)}
+        <fieldset className="budget-fieldset"><legend>Queijo por cima</legend><div className="budget-form-grid"><div className="budget-field"><label htmlFor="budget-cheese">Escolha do queijo</label><select id="budget-cheese" value={values['simulation.cheeseId']} onChange={(event) => sharedBudget.edit('simulation.cheeseId', event.target.value)} disabled={disabled}>{cheeses.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div>{settingField('cheeseGrams', 'Quantidade total de queijo', 'g', { disabled: disabled || values['simulation.cheeseId'] === 'nenhum', cost: shownCost(result.costs.cheese) })}</div><p className="budget-help">Separado do peso dos recheios. No queijo misto, metade muçarela e metade cheddar.</p></fieldset>
+        <fieldset className="budget-fieldset"><legend>Recheios <span>{selected.length} de 3</span></legend>{settingField('fillingTotalGrams', 'Peso total dos recheios', 'g', { positive: true, cost: shownCost(result.costs.fillingsTotal) })}<div className="budget-filling-list">
+          {fillings.map((item) => { const portion = result.costs.fillings.find((part) => part.id === item.id); return <label key={item.id} className={`budget-filling ${selected.includes(item.id) ? 'selected' : ''}`}><input type="checkbox" checked={selected.includes(item.id)} disabled={disabled || (!selected.includes(item.id) && selected.length >= 3) || (selected.includes(item.id) && selected.length === 1)} onChange={() => chooseFilling(item.id)} /><span>{item.name}{portion && <small className="budget-filling-cost">{number(portion.grams)} g · <strong>{money(shownCost(portion.cost))}</strong></small>}{item.vegetarian && <small>Sem carnes</small>}{item.id === 'champignon' && <small className="budget-stock-note">Referência sem estoque</small>}</span></label>; })}
         </div><p className="budget-help">{selected.length === 3 ? 'Para trocar um recheio, desmarque um dos três.' : 'Escolha de um a três. O peso total será dividido entre eles.'}</p><div className="budget-portions">{result.portions.map((portion) => <span key={portion.id}><strong>{number(portion.grams)} g</strong>{fillings.find((item) => item.id === portion.id)?.name}</span>)}</div></fieldset>
         <div className="budget-section-heading"><h3>Ingredientes desta combinação</h3><p>Batata: peso cru comprado. Nos recheios, os pesos são prontos para servir; a compra considera o rendimento de preparo.</p></div>
         <div className="budget-table-scroll"><table className="budget-portion-table"><thead><tr><th scope="col">Ingrediente</th><th scope="col">Peso da receita</th><th scope="col">Para comprar</th><th scope="col">Custo</th></tr></thead><tbody>{result.rows.map((row) => <tr key={row.id}><th scope="row">{row.name}{row.id === 'batata' ? ' (crua)' : ''}</th><td>{number(row.quantity)} {row.unit}</td><td>{number(row.purchaseQuantity)} {row.unit}</td><td>{money(row.cost)}</td></tr>)}</tbody></table></div>

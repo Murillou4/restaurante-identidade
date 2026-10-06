@@ -73,28 +73,65 @@ export function ingredientValues(item, values) {
   return { price, packageSize, yieldPercent: item.id === 'batata' ? 100 : values[`ingredients.${item.id}.yieldPercent`], unitPrice: price / packageSize * (item.unit === 'un' ? 1 : 1000), amount: values[`ingredients.${item.id}.amount`] ?? item.amount };
 }
 
+// Component costs use the same unit conversion and preparation yield as the
+// full portion, and exclude its reserve, packaging and operating costs.
+function costQuantities(values, quantities) {
+  const entries = Object.entries(quantities);
+  if (!entries.length) return 0;
+  const rows = [];
+  for (const [id, quantity] of entries) {
+    const item = ingredients.find((ingredient) => ingredient.id === id && ingredient.type === 'food');
+    if (!item) return null;
+    rows.push({ id, name: item.name, unit: item.unit, quantity, ...ingredientValues(item, values) });
+  }
+  return calculateBudget({ rows }).ingredientCost;
+}
+
 export function estimate(values, selection) {
   const settings = getSettings(values);
   const selectedFillings = selection?.fillings ?? values['simulation.fillings'];
   const cheese = selection?.cheese ?? values['simulation.cheeseId'];
   const portions = distributeFillings(selectedFillings, settings.fillingTotalGrams);
-  const quantities = { batata: settings.potatoGrams, oleo: settings.oilMl, sal: settings.saltGrams, 'batata-palha': selection?.palha ?? settings.palhaGrams, 'cheiro-verde': settings.greensGrams };
+  const baseQuantities = { batata: settings.potatoGrams, oleo: settings.oilMl, sal: settings.saltGrams, 'batata-palha': selection?.palha ?? settings.palhaGrams, 'cheiro-verde': settings.greensGrams };
+  const quantities = { ...baseQuantities };
+  const cheeseQuantities = cheese === 'misto'
+    ? { mucarela: settings.cheeseGrams / 2, cheddar: settings.cheeseGrams / 2 }
+    : cheese === 'nenhum' ? {} : { [cheese]: settings.cheeseGrams };
+  const costs = {
+    base: Object.fromEntries(Object.entries(baseQuantities).map(([id, quantity]) => [id, costQuantities(values, { [id]: quantity })])),
+    cheese: costQuantities(values, cheeseQuantities),
+    fillings: [],
+    fillingsTotal: null,
+  };
   const alerts = [...portions.alerts];
   const add = (id, quantity) => { quantities[id] = (quantities[id] ?? 0) + quantity; };
-  if (cheese === 'misto') { add('mucarela', settings.cheeseGrams / 2); add('cheddar', settings.cheeseGrams / 2); }
-  else if (cheese !== 'nenhum') add(cheese, settings.cheeseGrams);
+  for (const [id, quantity] of Object.entries(cheeseQuantities)) add(id, quantity);
   for (const portion of portions.portions) {
     const filling = fillings.find((item) => item.id === portion.id);
-    if (!filling) { alerts.push({ severity: 'error', message: 'Recheio desconhecido.' }); continue; }
+    if (!filling) {
+      alerts.push({ severity: 'error', message: 'Recheio desconhecido.' });
+      costs.fillings.push({ ...portion, cost: null });
+      continue;
+    }
     const parts = Object.keys(filling.parts).map((id) => [id, values[`recipes.${filling.id}.${id}`]]);
     const total = parts.reduce((sum, [, grams]) => sum + grams, 0);
-    if (!(total > 0) || parts.some(([, grams]) => !Number.isFinite(grams) || grams < 0)) { alerts.push({ severity: 'error', message: `Informe a composição de ${filling.name}.` }); continue; }
-    for (const [id, grams] of parts) add(id, portion.grams * grams / total);
+    if (!(total > 0) || parts.some(([, grams]) => !Number.isFinite(grams) || grams < 0)) {
+      alerts.push({ severity: 'error', message: `Informe a composição de ${filling.name}.` });
+      costs.fillings.push({ ...portion, cost: null });
+      continue;
+    }
+    const fillingQuantities = Object.fromEntries(parts.map(([id, grams]) => [id, portion.grams * grams / total]));
+    for (const [id, quantity] of Object.entries(fillingQuantities)) add(id, quantity);
+    costs.fillings.push({ ...portion, cost: costQuantities(values, fillingQuantities) });
+  }
+  if (portions.valid && costs.fillings.every((item) => Number.isFinite(item.cost))) {
+    const total = costs.fillings.reduce((sum, item) => sum + item.cost, 0);
+    costs.fillingsTotal = Number.isFinite(total) ? total : null;
   }
   const rows = ingredients.filter((item) => item.type === 'food' && quantities[item.id] !== 0 && quantities[item.id] !== undefined).map((item) => ({ id: item.id, name: item.name, unit: item.unit, quantity: quantities[item.id], ...ingredientValues(item, values) }));
   const packaging = ingredients.filter((item) => item.type === 'packaging').map((item) => ({ id: item.id, name: item.name, ...ingredientValues(item, values) }));
   const packagingCost = packaging.reduce((sum, item) => sum + item.unitPrice * item.amount, 0);
   const result = calculateBudget({ rows, settings: { ...settings, packagingPerUnit: settings.packagingPerUnit + packagingCost } });
   const allAlerts = [...alerts, ...result.alerts];
-  return { ...result, valid: result.valid && portions.valid && !alerts.some((item) => item.severity === 'error'), alerts: allAlerts, portions: portions.portions, packaging, packagingCost, settings, cheese, selectedFillings };
+  return { ...result, valid: result.valid && portions.valid && !alerts.some((item) => item.severity === 'error'), alerts: allAlerts, portions: portions.portions, packaging, packagingCost, settings, cheese, selectedFillings, costs };
 }

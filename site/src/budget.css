@@ -52,6 +52,8 @@
 .budget-field > input, .budget-field select { border: 1px solid #d0c4b3; background: #fffdf8; }
 .budget-field input:focus, .budget-field select:focus { outline: 2px solid var(--color-clay); outline-offset: 2px; }
 .budget-field small { display: block; margin-top: 7px; font-size: 12px; color: var(--color-muted); line-height: 1.55; }
+.budget-field .budget-field-cost { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 3px 10px; }
+.budget-field-cost strong, .budget-filling .budget-filling-cost strong { color: var(--color-clay); font-size: 14px; font-weight: 500; white-space: nowrap; }
 .budget-field .budget-field-error { color: #873d28; }
 .budget-field.has-error .budget-input-wrap { border-color: #a44d31; }
 .budget-field input:disabled, .budget-field select:disabled { opacity: .55; }
@@ -64,6 +66,7 @@
 .budget-filling input { accent-color: var(--color-clay); width: 18px; height: 18px; flex: none; }
 .budget-filling input:focus-visible { outline: 2px solid var(--color-clay); outline-offset: 4px; }
 .budget-filling small { display: block; margin-top: 3px; font-size: 11px; color: var(--color-muted); }
+.budget-filling .budget-filling-cost { font-size: 12px; }
 .budget-filling:has(input:disabled):not(.selected) { opacity: .55; cursor: default; }
 .budget-filling .budget-stock-note { color: #873d28; }
 .budget-portions { display: flex; flex-wrap: wrap; gap: 12px 25px; margin-top: 18px; padding: 15px 17px; background: #eee7db; border-radius: 4px; }
