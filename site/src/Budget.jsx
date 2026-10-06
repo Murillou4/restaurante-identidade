@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ArrowClockwise, ArrowSquareOut, FloppyDisk, WarningCircle } from '@phosphor-icons/react';
-import { RESEARCH_DATE, ingredients, fillings, cheeses, presets, ingredientValues } from './budgetCatalog';
+import { RESEARCH_DATE, ingredients, fillings, cheeses, presets, ingredientValues, getIngredientPriceEdit } from './budgetCatalog';
 import { defaultFields } from './sharedBudgetDefaults';
 import { estimateChannel, salesChannels } from './salesChannels';
 import SalesChannels, { channelLabels, monthlyLabels } from './SalesChannelPanel';
@@ -35,7 +35,11 @@ function conflictLabel(path) {
   const [group, id, field] = path.split('.');
   if (group === 'settings') return settingLabels[id] ?? 'Ajuste da operação';
   if (group === 'channel') return channelLabels[id] ?? 'Ajuste do canal de venda';
-  if (group === 'ingredients') return `${ingredientById[id]?.name ?? 'Insumo'}: ${{ price: 'preço do pacote', packageSize: 'tamanho do pacote', yieldPercent: 'rendimento', amount: 'quantidade por pedido' }[field] ?? 'valor'}`;
+  if (group === 'ingredients') {
+    const item = ingredientById[id];
+    const unit = item?.unit === 'g' ? 'kg' : item?.unit === 'ml' ? 'litro' : 'unidade';
+    return `${item?.name ?? 'Insumo'}: ${field === 'unitPrice' ? `preço por ${unit}` : { price: 'valor registrado', packageSize: 'base de conversão', yieldPercent: 'rendimento', amount: 'quantidade por pedido' }[field] ?? 'valor'}`;
+  }
   if (group === 'recipes') return `${fillings.find((item) => item.id === id)?.name ?? 'Recheio'}: ${ingredientById[field]?.name ?? 'parte da receita'}`;
   return id === 'cheeseId' ? 'Queijo por cima' : 'Recheios selecionados';
 }
@@ -45,6 +49,7 @@ function conflictValue(path, value) {
   if (path === 'channel.plan') return salesChannels.find((item) => item.id === value)?.name ?? 'Não definido';
   if (path === 'channel.monthlyExempt') return value === 1 ? 'Simular carência' : 'Mês normal';
   if (!Number.isFinite(value)) return 'Não definido';
+  if (path.startsWith('ingredients.') && path.endsWith('.unitPrice')) return `${money(value)} / ${ingredientById[path.split('.')[1]]?.unit === 'g' ? 'kg' : ingredientById[path.split('.')[1]]?.unit === 'ml' ? 'L' : 'un'}`;
   const currency = path.endsWith('.price') || ['energyPerUnit', 'laborPerUnit', 'packagingPerUnit', 'deliverySubsidy', 'fixedMonthly', 'chosenPrice'].some((id) => path === `settings.${id}`) || ['basicMonthly', 'deliveryMonthly', 'monthlyThreshold', 'ifoodDeliverySubsidy', 'promotionPerUnit'].some((id) => path === `channel.${id}`);
   return currency ? `R$ ${editableNumber(value)}` : number(value, 8);
 }
@@ -98,23 +103,30 @@ function configurationErrors(values) {
   return errors;
 }
 
-function IngredientRow({ item, values, fieldProps }) {
+function IngredientRow({ item, values, fieldProps, editMany }) {
   const data = ingredientValues(item, values);
   const edited = data.price !== item.price || data.packageSize !== item.packageSize;
   const packaging = item.type === 'packaging';
   const baseUnit = item.unit === 'g' ? 'kg' : item.unit === 'ml' ? 'L' : 'un';
+  const priceLabel = item.unit === 'g' ? 'Preço por kg' : item.unit === 'ml' ? 'Preço por litro' : 'Preço por unidade';
+  const editPrice = (_, value) => {
+    const changes = getIngredientPriceEdit(item, value);
+    if (changes) editMany(changes);
+  };
   return <article className="budget-ingredient">
       <div className="budget-ingredient-info"><h4>{item.name}</h4><div className="budget-source-status"><span className={`budget-tag status-${item.status}`}>{edited ? 'Seu valor' : statuses[item.status]}</span><span>{item.store}</span></div>
-      <p className="budget-unit-price">{money(data.unitPrice)} / {baseUnit}{!packaging && data.yieldPercent !== 100 && <span> · {money(data.unitPrice / (data.yieldPercent / 100))} / {baseUnit} pronto</span>}</p>
-      {item.note && <p className="budget-source-note">{item.note}</p>}
-      {item.source ? <a className="budget-source-link" href={item.source} target="_blank" rel="noopener noreferrer">Ver referência <ArrowSquareOut size={14} aria-hidden="true" /></a> : <span className="budget-source-note">Sem cotação confirmada.</span>}
-      {edited && <p className="budget-source-note">Fonte original: {statuses[item.status].toLowerCase()}. O valor acima foi ajustado no caderno.</p>}
     </div>
     <div className="budget-ingredient-inputs">
-      <NumberField {...fieldProps} path={`ingredients.${item.id}.price`} label="Preço que você encontrou" value={data.price} unit="R$" context={item.name} help="Valor total da quantidade informada ao lado." />
-      <NumberField {...fieldProps} path={`ingredients.${item.id}.packageSize`} label="Quantidade que esse preço compra" value={data.packageSize} unit={item.unit} positive context={item.name} help={packaging ? 'Quantidade de unidades no pacote.' : item.unit === 'g' ? 'Preço por kg? Use 1000 g. Para um pacote, use seu peso em gramas.' : 'Preço por litro? Use 1000 ml. Para uma garrafa, use seu volume em ml.'} />
-      {packaging ? <NumberField {...fieldProps} path={`ingredients.${item.id}.amount`} label="Por pedido" value={data.amount} unit="un" context={item.name} /> : item.id === 'batata' ? <div className="budget-fixed-field"><span>Base de peso</span><strong>100% da compra</strong><small>Peso cru comprado. A redução no forno não diminui o custo da batata.</small></div> : <NumberField {...fieldProps} path={`ingredients.${item.id}.yieldPercent`} label="Rendimento após preparo" value={data.yieldPercent} unit="%" positive max={100} context={item.name} />}
+      <NumberField {...fieldProps} path={`ingredients.${item.id}.unitPrice`} label={priceLabel} value={data.unitPrice} unit={`R$/${baseUnit}`} context={item.name} max={10000000} edit={editPrice} help={item.id === 'batata' ? 'Valor do quilo de batata crua que você compra.' : undefined} />
+      {packaging ? <NumberField {...fieldProps} path={`ingredients.${item.id}.amount`} label="Por pedido" value={data.amount} unit="un" context={item.name} /> : item.id !== 'batata' && <NumberField {...fieldProps} path={`ingredients.${item.id}.yieldPercent`} label="Rendimento após preparo" value={data.yieldPercent} unit="%" positive max={100} context={item.name} help="Quanto sobra depois de limpar ou preparar: 100% significa usar tudo." />}
     </div>
+    {!packaging && data.yieldPercent !== 100 && <p className="budget-unit-price">Depois do preparo: {money(data.unitPrice / (data.yieldPercent / 100))} / {baseUnit} pronto.</p>}
+    <details className="budget-price-reference"><summary>Referência da pesquisa</summary>
+      <p className="budget-source-note">Valor pesquisado: {money(item.price / item.packageSize * (item.unit === 'un' ? 1 : 1000))} / {baseUnit} · {RESEARCH_DATE}.</p>
+      {item.note && <p className="budget-source-note">{item.note}</p>}
+      {item.source ? <a className="budget-source-link" href={item.source} target="_blank" rel="noopener noreferrer">Ver fonte <ArrowSquareOut size={14} aria-hidden="true" /></a> : <span className="budget-source-note">Sem cotação confirmada.</span>}
+      {edited && <p className="budget-source-note">O preço usado na conta foi ajustado no caderno. Esta é a referência original.</p>}
+    </details>
   </article>;
 }
 
@@ -167,7 +179,14 @@ export default function Budget({ sharedBudget }) {
   const localErrors = Object.values(fieldErrors);
   const errors = [...new Set([...localErrors, ...inputErrors, ...result.alerts.filter((item) => item.severity !== 'warning').map((item) => item.message)])];
   const warnings = [...new Set(result.alerts.filter((item) => item.severity === 'warning').map((item) => item.message))];
-  const conflicts = sharedBudget.conflicts ?? [];
+  const priceConflicts = new Set();
+  const conflicts = (sharedBudget.conflicts ?? []).flatMap((conflict) => {
+    const [group, id, field] = conflict.path.split('.');
+    if (group !== 'ingredients' || !['price', 'packageSize'].includes(field) || !ingredientById[id]) return [conflict];
+    if (priceConflicts.has(id)) return [];
+    priceConflicts.add(id);
+    return [{ path: `ingredients.${id}.unitPrice`, remote: ingredientValues(ingredientById[id], { ...defaultFields, ...sharedBudget.cloud?.fields }).unitPrice, local: ingredientValues(ingredientById[id], values).unitPrice }];
+  });
   const invalid = !result.valid || errors.length > 0;
   const disabled = sharedBudget.saving || (sharedBudget.loading && !sharedBudget.cloud);
   const canSave = !disabled && Boolean(sharedBudget.cloud) && sharedBudget.dirty > 0 && !invalid;
@@ -226,13 +245,13 @@ export default function Budget({ sharedBudget }) {
         <div className="budget-table-scroll"><table className="budget-portion-table"><thead><tr><th scope="col">Ingrediente</th><th scope="col">Peso da receita</th><th scope="col">Para comprar</th><th scope="col">Custo</th></tr></thead><tbody>{result.rows.map((row) => <tr key={row.id}><th scope="row">{row.name}{row.id === 'batata' ? ' (crua)' : ''}</th><td>{number(row.quantity)} {row.unit}</td><td>{number(row.purchaseQuantity)} {row.unit}</td><td>{money(row.cost)}</td></tr>)}</tbody></table></div>
       </>}
       {tab === 'custos' && <>
-        <div className="budget-section-heading"><h3>Atualize com o preço do supermercado</h3><p>Todos os campos abaixo são editáveis. Toque no preço, digite o valor que encontrou e clique em <strong>Salvar orçamento</strong> para sua mãe receber a atualização também.</p></div>
-        <div className="budget-price-guide"><strong>O preço e a quantidade precisam corresponder.</strong><p>Batata a R$ 5,99/kg? Informe <b>5,99</b> no preço e <b>1000 g</b> na quantidade. Queijo a R$ 18,90 no pacote de 500 g? Informe <b>18,90</b> e <b>500 g</b>. O custo da batata e o lucro recalculam na hora.</p></div>
+        <div className="budget-section-heading"><h3>Atualize com o preço do supermercado</h3><p>Digite o preço por <strong>kg</strong> dos ingredientes, por <strong>litro</strong> dos líquidos e por <strong>unidade</strong> das embalagens. Clique em <strong>Salvar orçamento</strong> para guardar os valores para vocês dois.</p></div>
+        <div className="budget-price-guide"><strong>Batata a R$ 5,99/kg? É só digitar 5,99.</strong><p>O custo da quantidade usada na porção é calculado automaticamente. Não precisa informar o peso de um pacote.</p></div>
         <p className="budget-help">As referências iniciais foram coletadas em {RESEARCH_DATE}. Você pode substituir qualquer uma pelo preço da sua compra.</p>
         <div className="budget-status-legend"><span className="budget-tag status-reference">Referência de loja</span><span className="budget-tag status-estimate">Hipótese inicial</span><span className="budget-tag status-unavailable">Preço sem estoque</span></div>
         <p className="budget-help">O rendimento é a parte que sobra depois de limpar, escorrer ou cozinhar. Os percentuais iniciais são hipóteses; pesem o lote para ajustar. Frete de compra não incluído nos preços pesquisados.</p>
         <div className="budget-field budget-search"><label htmlFor="budget-search">Buscar ingrediente ou embalagem</label><input id="budget-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Frango, muçarela, bandeja…" /></div>
-        {['food', 'packaging'].map((type) => { const items = filteredIngredients.filter((item) => item.type === type); return items.length > 0 && <section key={type} className="budget-cost-group"><h3>{type === 'food' ? 'Ingredientes' : 'Embalagens por pedido'}</h3>{type === 'packaging' && <p className="budget-help">O custo por unidade já soma estes pacotes. Outros itens entram uma vez na aba Operação.</p>}{items.map((item) => <IngredientRow key={item.id} item={item} values={values} fieldProps={fieldProps} />)}</section>; })}
+        {['food', 'packaging'].map((type) => { const items = filteredIngredients.filter((item) => item.type === type); return items.length > 0 && <section key={type} className="budget-cost-group"><h3>{type === 'food' ? 'Ingredientes' : 'Embalagens por pedido'}</h3>{type === 'packaging' && <p className="budget-help">Informe o preço de cada unidade e quantas vão em um pedido. Outros itens entram uma vez na aba Operação.</p>}{items.map((item) => <IngredientRow key={item.id} item={item} values={values} fieldProps={fieldProps} editMany={sharedBudget.editMany} />)}</section>; })}
         {!filteredIngredients.length && <div className="budget-empty"><h3>Nenhum item com esse nome.</h3><p>Busque outro ingrediente ou apague o texto para ver a lista completa.</p><button type="button" className="budget-button secondary" onClick={() => setQuery('')}>Limpar busca</button></div>}
       </>}
       {tab === 'receitas' && <>

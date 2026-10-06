@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultFields, estimate, ingredients, presets } from '../src/budgetCatalog.js';
+import { defaultFields, estimate, getIngredientPriceEdit, ingredientValues, ingredients, presets } from '../src/budgetCatalog.js';
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
 test('cesta usa peso cru comprado da batata e não aumenta compra por perda do forno', () => {
@@ -124,4 +124,111 @@ test('preço, quantidade ou rendimento inválidos não viram custos zero', () =>
   const missingSelection = estimate({ ...defaultFields, 'simulation.fillings': [] });
   assert.equal(missingSelection.costs.fillingsTotal, null);
   assert.deepEqual(missingSelection.costs.fillings, []);
+});
+
+test('leitura por kg preserva a referência antiga da batata de R$ 1,15 por 160 g', () => {
+  const potato = ingredients.find((item) => item.id === 'batata');
+  const before = structuredClone(defaultFields);
+  const data = ingredientValues(potato, defaultFields);
+  close(data.unitPrice, 7.1875);
+  assert.equal(data.price, 1.15);
+  assert.equal(data.packageSize, 160);
+  close(estimate(defaultFields).costs.base.batata, 3.234375);
+  assert.deepEqual(defaultFields, before);
+});
+
+test('editar preço por kg da batata altera preço e base juntos e custa R$ 2,6955 por 450 g', () => {
+  const potato = ingredients.find((item) => item.id === 'batata');
+  const changes = getIngredientPriceEdit(potato, 5.99);
+  assert.deepEqual(changes, { 'ingredients.batata.price': 5.99, 'ingredients.batata.packageSize': 1000 });
+  const values = { ...defaultFields, ...changes };
+  close(ingredientValues(potato, values).unitPrice, 5.99);
+  close(estimate(values).costs.base.batata, 2.6955);
+  assert.equal(defaultFields['ingredients.batata.packageSize'], 160);
+  assert.equal(potato.price, 1.15);
+});
+
+test('editar óleo por litro normaliza 1000 ml e custa R$ 0,05 em 5 ml', () => {
+  const oil = ingredients.find((item) => item.id === 'oleo');
+  const changes = getIngredientPriceEdit(oil, 10);
+  assert.deepEqual(changes, { 'ingredients.oleo.price': 10, 'ingredients.oleo.packageSize': 1000 });
+  const values = { ...defaultFields, ...changes };
+  close(ingredientValues(oil, values).unitPrice, 10);
+  close(estimate(values).costs.base.oleo, 0.05);
+});
+
+test('embalagem por unidade mantém a quantidade de dois guardanapos por pedido', () => {
+  const napkin = ingredients.find((item) => item.id === 'guardanapo');
+  const original = ingredientValues(napkin, defaultFields);
+  close(original.unitPrice, 0.056);
+  assert.equal(original.amount, 2);
+  const changes = getIngredientPriceEdit(napkin, 0.1);
+  assert.deepEqual(changes, { 'ingredients.guardanapo.price': 0.1, 'ingredients.guardanapo.packageSize': 1 });
+  assert.equal(Object.hasOwn(changes, 'ingredients.guardanapo.amount'), false);
+  const result = estimate({ ...defaultFields, ...changes });
+  const edited = result.packaging.find((item) => item.id === 'guardanapo');
+  assert.equal(edited.amount, 2);
+  close(edited.unitPrice * edited.amount, 0.2);
+  close(result.packagingCost, 2.0649);
+});
+
+test('muçarela de 500 g por R$ 24,99 aparece como R$ 49,98/kg sem mudar o custo', () => {
+  const cheese = ingredients.find((item) => item.id === 'mucarela');
+  const before = estimate(defaultFields);
+  const unitPrice = ingredientValues(cheese, defaultFields).unitPrice;
+  close(unitPrice, 49.98);
+  assert.equal(defaultFields['ingredients.mucarela.packageSize'], 500);
+  const values = { ...defaultFields, ...getIngredientPriceEdit(cheese, unitPrice) };
+  assert.equal(values['ingredients.mucarela.packageSize'], 1000);
+  close(estimate(values).costs.cheese, 1.9992);
+  close(estimate(values).fullCost, before.fullCost);
+});
+
+test('salvar e reabrir preços normalizados mantém os custos e aceita caderno com bases antigas e novas', () => {
+  const before = estimate(defaultFields);
+  const changes = Object.assign({}, ...ingredients.map((item) => getIngredientPriceEdit(item, ingredientValues(item, defaultFields).unitPrice)));
+  const reopened = JSON.parse(JSON.stringify({ ...defaultFields, ...changes }));
+  const after = estimate(reopened);
+  assert.equal(after.valid, true);
+  close(after.ingredientCost, before.ingredientCost);
+  close(after.packagingCost, before.packagingCost);
+  close(after.fullCost, before.fullCost);
+  close(after.suggestedPrice, before.suggestedPrice);
+  for (const item of ingredients) {
+    assert.equal(reopened[`ingredients.${item.id}.packageSize`], item.unit === 'un' ? 1 : 1000);
+    close(ingredientValues(item, reopened).unitPrice, ingredientValues(item, defaultFields).unitPrice);
+  }
+  const potato = ingredients.find((item) => item.id === 'batata');
+  const mixed = JSON.parse(JSON.stringify({ ...defaultFields, ...getIngredientPriceEdit(potato, 5.99) }));
+  assert.equal(mixed['ingredients.batata.packageSize'], 1000);
+  assert.equal(mixed['ingredients.mucarela.packageSize'], 500);
+  assert.equal(mixed['ingredients.oleo.packageSize'], 900);
+  assert.equal(mixed['ingredients.guardanapo.packageSize'], 50);
+  close(estimate(mixed).costs.base.batata, 2.6955);
+  close(estimate(mixed).costs.cheese, before.costs.cheese);
+  close(estimate(mixed).packagingCost, before.packagingCost);
+});
+
+test('edição de preço aceita zero e limite do backend sem arredondar e rejeita números inválidos', () => {
+  const potato = ingredients.find((item) => item.id === 'batata');
+  for (const price of [0, 0.123456789, 10000000]) {
+    const changes = getIngredientPriceEdit(potato, price);
+    assert.equal(changes['ingredients.batata.price'], price);
+    assert.equal(changes['ingredients.batata.packageSize'], 1000);
+  }
+  assert.equal(estimate({ ...defaultFields, ...getIngredientPriceEdit(potato, 0) }).costs.base.batata, 0);
+  for (const value of [-0.01, 10000000.01, NaN, Infinity, -Infinity, '5.99', '5,99', undefined, null, true, false, {}, []]) {
+    assert.equal(getIngredientPriceEdit(potato, value), null, String(value));
+  }
+});
+
+test('edição só aceita ingredientes e unidades do catálogo, sem criar caminhos de protótipo', () => {
+  for (const item of [undefined, null, {}, { id: 'outro', unit: 'g' }, { id: 'constructor', unit: 'g' }, { id: '__proto__', unit: 'g' }, { id: 'frango.price', unit: 'g' }, { id: 'batata', unit: 'kg' }, { id: 'batata', unit: 'un' }, { id: 'batata', unit: 'constructor' }]) {
+    assert.equal(getIngredientPriceEdit(item, 10), null);
+  }
+  const potato = Object.freeze({ ...ingredients.find((item) => item.id === 'batata') });
+  const before = structuredClone(potato);
+  assert.deepEqual(Object.keys(getIngredientPriceEdit(potato, 5.99)), ['ingredients.batata.price', 'ingredients.batata.packageSize']);
+  assert.deepEqual(potato, before);
+  assert.equal({}.polluted, undefined);
 });

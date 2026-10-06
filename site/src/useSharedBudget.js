@@ -73,11 +73,21 @@ export function useSharedBudget(roomId, defaults) {
   const editMany = useCallback((changes) => {
     if (!draftBase.current) draftBase.current = cloudRef.current;
     const next = { ...draftRef.current };
+    // A unit-price edit carries its conversion basis even when that basis is
+    // unchanged. Keep the pair through refreshes/conflicts with older clients.
+    const pairedPrices = new Set();
+    for (const path of Object.keys(changes)) {
+      if (!/^ingredients\.[^.]+\.price$/.test(path)) continue;
+      const basis = path.replace(/\.price$/, '.packageSize');
+      if (!Object.hasOwn(changes, basis)) continue;
+      const differs = [path, basis].some((key) => JSON.stringify(changes[key]) !== JSON.stringify(cloudRef.current?.fields[key] ?? defaults[key]));
+      if (differs || uncertain.current || inFlight.current) { pairedPrices.add(path); pairedPrices.add(basis); }
+    }
     for (const [path, value] of Object.entries(changes)) {
       const confirmed = cloudRef.current?.fields[path] ?? defaults[path];
       // A write with a lost response may already be committed. Keep the user's
       // intent explicit when they change it, even if it matches an old read.
-      if (!uncertain.current && !inFlight.current && JSON.stringify(value) === JSON.stringify(confirmed)) delete next[path];
+      if (!pairedPrices.has(path) && !uncertain.current && !inFlight.current && JSON.stringify(value) === JSON.stringify(confirmed)) delete next[path];
       else next[path] = value;
     }
     draftRef.current = next;

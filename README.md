@@ -44,6 +44,8 @@ O código do backend é mantido no projeto de hospedagem separado `shared-backen
 
 `budgetCatalog.js` mantém preços iniciais com fonte/data e as composições de recheio. `budgetMath.js` calcula custo, margem, resultado e ponto de equilíbrio; três recheios dividem o mesmo peso total. `useSharedBudget.js` mantém os valores confirmados separados das edições ainda não salvas.
 
+Em **Custos e preços**, a compra é informada diretamente por kg, litro ou unidade. A leitura converte as referências e os cadernos antigos sem alterar seus custos; uma edição explícita salva preço e base de conversão juntos. Os dados das embalagens originais da pesquisa ficam em uma seção recolhida.
+
 `salesChannels.js` compara venda direta, iFood Básico com entrega própria e iFood Entrega. A aba **Canais e iFood** permite editar comissão, pagamento online, participação das vendas online, mensalidades, carência, frete subsidiado, promoções e outras taxas. O canal escolhido recalcula também as sugestões de receitas. Os ajustes são salvos no mesmo orçamento compartilhado. A pesquisa oficial de **06/10/2026** e as hipóteses sobre a base das taxas estão em [docs/IFOOD.md](docs/IFOOD.md).
 
 Os preços publicados por lojas de Goiânia em 06/10/2026 são referências, sem garantia de disponibilidade ou entrega. Itens estimados e indisponíveis têm rótulos próprios. Porções, receitas, rendimento, margem, energia e trabalho são hipóteses editáveis, não definições finais. Consulte `docs/ORCAMENTO.md` e `docs/PRECOS-REFERENCIA.md`.

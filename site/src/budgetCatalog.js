@@ -73,6 +73,18 @@ export function ingredientValues(item, values) {
   return { price, packageSize, yieldPercent: item.id === 'batata' ? 100 : values[`ingredients.${item.id}.yieldPercent`], unitPrice: price / packageSize * (item.unit === 'un' ? 1 : 1000), amount: values[`ingredients.${item.id}.amount`] ?? item.amount };
 }
 
+// Existing values keep their original package basis. Only an explicit unit-price
+// edit creates this two-field patch for one atomic sharedBudget.editMany call.
+// Prices are R$/kg for g, R$/L for ml and R$/unit for un; no rounding is applied.
+export function getIngredientPriceEdit(item, unitPrice) {
+  const catalogItem = ingredients.find((known) => known.id === item?.id);
+  if (!catalogItem || item.unit !== catalogItem.unit || !Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > 10000000) return null;
+  return {
+    [`ingredients.${catalogItem.id}.price`]: unitPrice,
+    [`ingredients.${catalogItem.id}.packageSize`]: catalogItem.unit === 'un' ? 1 : 1000,
+  };
+}
+
 // Component costs use the same unit conversion and preparation yield as the
 // full portion, and exclude its reserve, packaging and operating costs.
 function costQuantities(values, quantities) {

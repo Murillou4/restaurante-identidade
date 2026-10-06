@@ -8,11 +8,13 @@ A referência de implementação é o [catálogo](../site/src/budgetCatalog.js),
 
 1. Abrir o mesmo link completo do caderno nos dois aparelhos. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
 2. Comparar uma composição: queijo e de um a três recheios. Os campos mostram o custo dos ingredientes da quantidade escolhida; os recheios selecionados mostram peso e custo. A tabela completa continua abaixo para conferir a compra de cada ingrediente.
-3. Em **Custos e preços**, editar **Preço que você encontrou** e **Quantidade que esse preço compra** com os valores do supermercado. Se a batata custa R$ 5,99/kg, informar 5,99 e 1000 g; se o queijo custa R$ 18,90 por pacote de 500 g, informar 18,90 e 500 g. Usar 1000 sem separador de milhar nos campos. Ajustar rendimento, receitas e custos da operação com os testes reais.
+3. Em **Custos e preços**, informar diretamente o **Preço por kg** dos ingredientes, **Preço por litro** dos líquidos e **Preço por unidade** das embalagens. Batata a R$ 5,99/kg: digitar somente 5,99. O peso usado na porção vem da aba Simular; não é necessário cadastrar peso de pacote. Ajustar rendimento, receitas e custos da operação com os testes reais.
 4. Informar o preço que pretendem praticar e o volume mensal. Escolher o canal no seletor **Canal para simular** e comparar as taxas em **Canais e iFood**.
 5. Salvar e aguardar a confirmação **“Orçamento salvo para vocês dois.”** No outro aparelho, conferir a mesma composição e os valores confirmados.
 
 As edições recalculam a simulação na aba atual; tornam-se compartilhadas depois da resposta do servidor. Em uma falha de salvamento, as edições continuam na aba e podem ser reenviadas. Se outro aparelho salvar primeiro, o caderno carrega os valores novos e preserva o rascunho para revisão antes de salvar novamente.
+
+Os cadernos anteriores continuam com o mesmo custo: preços de embalagens pesquisadas são convertidos para kg, litro ou unidade na leitura, sem arredondar o cálculo ou alterar os valores salvos. Só editar um preço grava sua base normalizada (1000 g/ml ou uma unidade), com preço e base enviados juntos. As fontes e os detalhes dos pacotes originais ficam em **Referência da pesquisa**. Se dois aparelhos editarem o preço, a revisão mostra o conflito pelo mesmo kg, litro ou unidade.
 
 O seletor **Eu (filho) / Mãe** fica somente na Galeria e identifica quem marca os favoritos de nome e logo.
 
