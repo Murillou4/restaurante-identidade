@@ -94,7 +94,10 @@ export function useSharedBudget(roomId, defaults) {
   const save = useCallback(async () => {
     if (!cloudRef.current || inFlight.current || !Object.keys(draftRef.current).length) return false;
     const base = draftBase.current ?? cloudRef.current;
-    const operation = failedOperation.current ?? { revision: base.revision, mutationId: crypto.randomUUID(), changes: { ...(base.revision === 0 ? defaults : {}), ...draftRef.current } };
+    // Freeze newly introduced defaults when an older caderno is saved, too.
+    // The revision check still protects values added by the other appliance.
+    const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([path]) => !Object.hasOwn(base.fields, path)));
+    const operation = failedOperation.current ?? { revision: base.revision, mutationId: crypto.randomUUID(), changes: { ...missingDefaults, ...draftRef.current } };
     const currentEpoch = epoch.current;
     inFlight.current = true;
     setSaving(true);

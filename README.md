@@ -34,7 +34,7 @@ Favoritos e orçamento são salvos online em um caderno identificado pelo parâm
 
 Abra [o site](https://murillou4.github.io/restaurante-identidade/) e use **Copiar link compartilhado**. É preciso compartilhar o link completo do caderno: abrir apenas a página inicial em outro aparelho cria outro caderno. Para marcar favoritos, selecione quem está marcando na Galeria. Quem tem o link pode ler e alterar os dados, sem conta ou senha.
 
-No Orçamento, mudanças alteram a simulação imediatamente; clique em **Salvar orçamento** para guardar os dados para os dois aparelhos. Edições sem salvar permanecem na aba e são protegidas de atualizações de outro aparelho. Uma revisão do servidor impede sobrescrever silenciosamente um orçamento antigo. A primeira gravação guarda também os valores iniciais usados na simulação.
+No Orçamento, mudanças alteram a simulação imediatamente; clique em **Salvar orçamento** para guardar os dados para os dois aparelhos. Edições sem salvar permanecem na aba e são protegidas de atualizações de outro aparelho. Uma revisão do servidor impede sobrescrever silenciosamente um orçamento antigo. Ao salvar, o caderno guarda também valores iniciais que ainda não estavam registrados, incluindo novos ajustes de canal em cadernos antigos.
 
 `site/src/useSharedChoices.js` conecta o GitHub Pages à API hospedada em Sites, com persistência SQLite (D1). As gravações usam valores explícitos e o site só confirma um favorito depois da resposta do servidor. Falhas oferecem uma tentativa de repetição e não substituem as últimas escolhas confirmadas.
 
@@ -43,6 +43,8 @@ O código do backend é mantido no projeto de hospedagem separado `shared-backen
 ## Modelo de orçamento
 
 `budgetCatalog.js` mantém preços iniciais com fonte/data e as composições de recheio. `budgetMath.js` calcula custo, margem, resultado e ponto de equilíbrio; três recheios dividem o mesmo peso total. `useSharedBudget.js` mantém os valores confirmados separados das edições ainda não salvas.
+
+`salesChannels.js` compara venda direta, iFood Básico com entrega própria e iFood Entrega. A aba **Canais e iFood** permite editar comissão, pagamento online, participação das vendas online, mensalidades, carência, frete subsidiado, promoções e outras taxas. O canal escolhido recalcula também as sugestões de receitas. Os ajustes são salvos no mesmo orçamento compartilhado. A pesquisa oficial de **06/10/2026** e as hipóteses sobre a base das taxas estão em [docs/IFOOD.md](docs/IFOOD.md).
 
 Os preços publicados por lojas de Goiânia em 06/10/2026 são referências, sem garantia de disponibilidade ou entrega. Itens estimados e indisponíveis têm rótulos próprios. Porções, receitas, rendimento, margem, energia e trabalho são hipóteses editáveis, não definições finais. Consulte `docs/ORCAMENTO.md` e `docs/PRECOS-REFERENCIA.md`.
 

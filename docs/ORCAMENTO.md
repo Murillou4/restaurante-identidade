@@ -9,12 +9,24 @@ A referência de implementação é o [catálogo](../site/src/budgetCatalog.js),
 1. Abrir o mesmo link completo do caderno nos dois aparelhos. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
 2. Comparar uma composição: queijo e de um a três recheios. Os campos mostram o custo dos ingredientes da quantidade escolhida; os recheios selecionados mostram peso e custo. A tabela completa continua abaixo para conferir a compra de cada ingrediente.
 3. Atualizar preços, pesos dos pacotes e rendimento com as compras e os testes reais. Ajustar as receitas e os custos da operação.
-4. Informar o preço que pretendem praticar, o volume mensal e as taxas aplicáveis ao canal de venda.
+4. Informar o preço que pretendem praticar e o volume mensal. Escolher o canal no seletor **Canal para simular** e comparar as taxas em **Canais e iFood**.
 5. Salvar e aguardar a confirmação **“Orçamento salvo para vocês dois.”** No outro aparelho, conferir a mesma composição e os valores confirmados.
 
 As edições recalculam a simulação na aba atual; tornam-se compartilhadas depois da resposta do servidor. Em uma falha de salvamento, as edições continuam na aba e podem ser reenviadas. Se outro aparelho salvar primeiro, o caderno carrega os valores novos e preserva o rascunho para revisão antes de salvar novamente.
 
 O seletor **Eu (filho) / Mãe** fica somente na Galeria e identifica quem marca os favoritos de nome e logo.
+
+## Venda direta e planos do iFood
+
+A pesquisa oficial de 06/10/2026 está em [IFOOD.md](IFOOD.md). Referências iniciais: Básico com comissão de 12%, pagamento online de 3,2% e mensalidade de R$ 110; Entrega com comissão de 23%, pagamento online de 3,2% e mensalidade de R$ 150. A mensalidade é aplicada somente acima de R$ 1.800 de faturamento mensal no canal, com opção de simular a carência do primeiro mês. Todos esses parâmetros são editáveis.
+
+Cada comparação usa a mesma composição, preço testado e volume mensal, supondo todas as vendas naquele canal. Não somar os três resultados mensais. A participação online é uma porcentagem do faturamento; a taxa online efetiva é `taxa de pagamento × participação / 100`. No iFood, as taxas substituem o campo de taxas da venda direta; os impostos continuam aplicados separadamente. Os valores anteriores do caderno permanecem guardados.
+
+Direto e Básico usam o custo líquido de entrega própria pago pelo negócio. Entrega iFood usa o subsídio de frete do plano, sem somar a entrega própria. Promoções em reais por batata e taxas percentuais adicionais são opcionais e começam em zero. A antecipação precisa de uma taxa confirmada na oferta da loja, e a cobertura do Plano Entrega deve ser conferida no endereço de produção.
+
+O faturamento simplificado é `preço da batata × batatas por mês`. As taxas usam o preço da batata, sem bebidas ou frete cobrado do cliente; a base contratual do frete próprio não foi confirmada nas fontes públicas. Conferir contrato e extrato antes de usar a simulação para prever o repasse real.
+
+No iFood, o preço sugerido considera a mensalidade que seria devida no faturamento do próprio preço recomendado. Os candidatos são arredondados para cima ao centavo para preservar a margem desejada. O custo completo e o resultado no preço testado usam a mensalidade daquele cenário, que pode ser diferente da usada na sugestão. O ponto de equilíbrio também avalia a cobrança conforme o volume necessário, com aviso se a mensalidade provocar uma nova queda no resultado após o limite.
 
 O frontend se conecta a uma API em um **backend separado**, com o orçamento associado ao mesmo identificador de caderno do link. Quem tem esse link pode acessar e editar o caderno. O salvamento de um orçamento registra uma simulação de planejamento; a aprovação da receita e do preço deve ser combinada pelos dois.
 

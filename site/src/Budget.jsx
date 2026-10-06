@@ -1,24 +1,27 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ArrowClockwise, ArrowSquareOut, FloppyDisk, WarningCircle } from '@phosphor-icons/react';
-import { RESEARCH_DATE, ingredients, fillings, cheeses, presets, defaultFields, ingredientValues, estimate } from './budgetCatalog';
+import { RESEARCH_DATE, ingredients, fillings, cheeses, presets, ingredientValues } from './budgetCatalog';
+import { defaultFields } from './sharedBudgetDefaults';
+import { estimateChannel, salesChannels } from './salesChannels';
+import SalesChannels, { channelLabels, monthlyLabels } from './SalesChannelPanel';
 import './budget.css';
 
 const money = (value) => Number.isFinite(value) ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—';
 const number = (value, digits = 2) => Number.isFinite(value) ? value.toLocaleString('pt-BR', { maximumFractionDigits: digits }) : '—';
 const editableNumber = (value) => Number.isFinite(value) ? value.toLocaleString('pt-BR', { useGrouping: false, maximumFractionDigits: 8 }) : '';
 const statuses = { reference: 'Referência de loja', estimate: 'Hipótese inicial', unavailable: 'Preço sem estoque' };
-const tabs = [{ id: 'simular', name: 'Simular' }, { id: 'custos', name: 'Custos e preços' }, { id: 'receitas', name: 'Receitas' }, { id: 'operacao', name: 'Operação' }];
+const tabs = [{ id: 'simular', name: 'Simular' }, { id: 'custos', name: 'Custos e preços' }, { id: 'canais', name: 'Canais e iFood' }, { id: 'receitas', name: 'Receitas' }, { id: 'operacao', name: 'Operação' }];
 const ingredientById = Object.fromEntries(ingredients.map((item) => [item.id, item]));
 const operationFields = [
   { id: 'energyPerUnit', label: 'Energia por batata', unit: 'R$', help: 'Gás e eletricidade: uma hipótese até medir a produção.' },
   { id: 'laborPerUnit', label: 'Trabalho por batata', unit: 'R$', help: 'Valor reservado para o trabalho de vocês.' },
   { id: 'packagingPerUnit', label: 'Outros itens de embalagem', unit: 'R$', help: 'Só itens fora dos pacotes cadastrados, como etiqueta ou lacre.' },
-  { id: 'deliverySubsidy', label: 'Entrega paga pelo negócio', unit: 'R$', help: 'Parte do frete que vocês assumem por pedido.' },
+  { id: 'deliverySubsidy', label: 'Entrega própria paga pelo negócio', unit: 'R$', help: 'Custo por batata após descontar o frete pago pelo cliente. Usado no Direto e no iFood Básico.' },
   { id: 'fixedMonthly', label: 'Custos fixos mensais', unit: 'R$', help: 'Custos que ainda não foram lançados por unidade.' },
   { id: 'unitsMonthly', label: 'Batatas por mês', unit: 'un', positive: true, integer: true, help: 'Volume previsto para distribuir os custos fixos.' },
   { id: 'lossPercent', label: 'Reserva adicional para perdas', unit: '%', max: 100, help: 'Somente perdas extras, além do rendimento de preparo.' },
   { id: 'taxPercent', label: 'Impostos sobre a venda', unit: '%', max: 100, help: 'Hipótese editável conforme a forma de operação.' },
-  { id: 'feePercent', label: 'Pagamento e plataformas', unit: '%', max: 100, help: 'Taxas aplicadas uma vez sobre o preço de venda.' },
+  { id: 'feePercent', label: 'Taxas da venda direta', unit: '%', max: 100, help: 'Cartão e outros meios fora do iFood. Os planos do iFood usam os ajustes da aba Canais e iFood.' },
   { id: 'targetMarginPercent', label: 'Margem desejada sobre a venda', unit: '%', max: 100, help: 'Depois dos ingredientes, taxas e rateio dos fixos.' },
 ];
 
@@ -31,6 +34,7 @@ const settingLabels = {
 function conflictLabel(path) {
   const [group, id, field] = path.split('.');
   if (group === 'settings') return settingLabels[id] ?? 'Ajuste da operação';
+  if (group === 'channel') return channelLabels[id] ?? 'Ajuste do canal de venda';
   if (group === 'ingredients') return `${ingredientById[id]?.name ?? 'Insumo'}: ${{ price: 'preço do pacote', packageSize: 'tamanho do pacote', yieldPercent: 'rendimento', amount: 'quantidade por pedido' }[field] ?? 'valor'}`;
   if (group === 'recipes') return `${fillings.find((item) => item.id === id)?.name ?? 'Recheio'}: ${ingredientById[field]?.name ?? 'parte da receita'}`;
   return id === 'cheeseId' ? 'Queijo por cima' : 'Recheios selecionados';
@@ -38,8 +42,10 @@ function conflictLabel(path) {
 function conflictValue(path, value) {
   if (path === 'simulation.fillings') return Array.isArray(value) ? value.map((id) => fillings.find((item) => item.id === id)?.name ?? 'Recheio não cadastrado').join(' + ') : 'Não definido';
   if (path === 'simulation.cheeseId') return cheeses.find((item) => item.id === value)?.name ?? 'Não definido';
+  if (path === 'channel.plan') return salesChannels.find((item) => item.id === value)?.name ?? 'Não definido';
+  if (path === 'channel.monthlyExempt') return value === 1 ? 'Simular carência' : 'Mês normal';
   if (!Number.isFinite(value)) return 'Não definido';
-  const currency = path.endsWith('.price') || ['energyPerUnit', 'laborPerUnit', 'packagingPerUnit', 'deliverySubsidy', 'fixedMonthly', 'chosenPrice'].some((id) => path === `settings.${id}`);
+  const currency = path.endsWith('.price') || ['energyPerUnit', 'laborPerUnit', 'packagingPerUnit', 'deliverySubsidy', 'fixedMonthly', 'chosenPrice'].some((id) => path === `settings.${id}`) || ['basicMonthly', 'deliveryMonthly', 'monthlyThreshold', 'ifoodDeliverySubsidy', 'promotionPerUnit'].some((id) => path === `channel.${id}`);
   return currency ? `R$ ${editableNumber(value)}` : number(value, 8);
 }
 
@@ -115,7 +121,7 @@ function IngredientRow({ item, values, fieldProps }) {
 function ComparisonTable({ values, apply, disabled }) {
   return <div className="budget-table-scroll"><table className="budget-comparison"><caption>Sete sugestões para comparar, sem definir o cardápio.</caption><thead><tr><th scope="col">Sugestão de sabor</th><th scope="col">Combinação</th><th scope="col">Custo completo</th><th scope="col">Preço sugerido</th><th scope="col"><span className="budget-sr-only">Aplicar à simulação</span></th></tr></thead><tbody>
     {presets.map((preset) => {
-      const result = estimate(values, { ...preset, palha: preset.palha ?? 0 });
+      const result = estimateChannel(values, values['channel.plan'], { ...preset, palha: preset.palha ?? 0 });
       return <tr key={preset.name}><th scope="row">{preset.name}</th><td>{preset.fillings.map((id) => fillings.find((item) => item.id === id)?.name).join(' + ')}<small>{cheeses.find((item) => item.id === preset.cheese)?.name}{preset.palha ? ` · ${preset.palha} g de palha` : ''}</small></td><td>{result.valid ? money(result.fullCost) : 'Revisar valores'}</td><td>{result.valid ? money(result.suggestedPrice) : '—'}</td><td><button type="button" className="budget-button secondary" onClick={() => apply(preset)} disabled={disabled}>Aplicar<span className="budget-sr-only"> {preset.name}</span></button></td></tr>;
     })}
   </tbody></table></div>;
@@ -125,7 +131,7 @@ function ResultPanel({ result, values, fieldProps, invalidDraft }) {
   const shown = (value) => invalidDraft ? null : value;
   const packaging = result.packagingCost + result.settings.packagingPerUnit;
   return <aside className="budget-results" aria-labelledby="budget-result-title">
-    <div className="budget-results-heading"><span className="budget-kicker">CENÁRIO ATUAL</span><h3 id="budget-result-title">Por batata</h3><p>Considera {number(result.settings.unitsMonthly, 0)} batatas por mês, todas com esta mesma composição.</p></div>
+    <div className="budget-results-heading"><span className="budget-kicker">{result.channel.name.toLocaleUpperCase('pt-BR')}</span><h3 id="budget-result-title">Por batata</h3><p>Considera {number(result.settings.unitsMonthly, 0)} batatas por mês neste canal, todas com esta mesma composição.</p></div>
     <div className="budget-main-metrics"><div><span>Custo completo</span><strong>{money(shown(result.fullCost))}</strong></div><div><span>Preço sugerido</span><strong>{money(shown(result.suggestedPrice))}</strong><small>Para a margem de {number(result.settings.targetMarginPercent)}% sobre a venda.</small></div></div>
     <NumberField {...fieldProps} path="settings.chosenPrice" label="Preço para testar" value={values['settings.chosenPrice']} unit="R$" help="Um cenário; ainda não é o preço do cardápio." />
     <dl className="budget-breakdown">
@@ -135,10 +141,14 @@ function ResultPanel({ result, values, fieldProps, invalidDraft }) {
       <div><dt>Energia</dt><dd>{money(shown(result.settings.energyPerUnit))}</dd></div>
       <div><dt>Trabalho</dt><dd>{money(shown(result.settings.laborPerUnit))}</dd></div>
       <div><dt>Entrega assumida</dt><dd>{money(shown(result.settings.deliverySubsidy))}</dd></div>
+      {result.channel.id !== 'direct' && <div><dt>Promoção paga pela loja</dt><dd>{money(shown(result.channel.promotionPerUnit))}</dd></div>}
       <div className="budget-subtotal"><dt>Custos variáveis</dt><dd>{money(shown(result.variableCost))}</dd></div>
-      <div><dt>Rateio dos fixos</dt><dd>{money(shown(result.fixedCostPerUnit))}</dd></div>
-      <div><dt>Taxas e impostos no preço testado</dt><dd>{money(shown(result.totalPercentCost))}</dd></div>
+      <div><dt>Rateio dos fixos do negócio</dt><dd>{money(shown(result.channel.baseFixedMonthly / result.settings.unitsMonthly))}</dd></div>
+      {result.channel.id !== 'direct' && <><div><dt>Mensalidade iFood por batata</dt><dd>{money(shown(result.channel.monthly / result.settings.unitsMonthly))}</dd></div><div><dt>Comissão ({number(result.channel.commissionPercent)}%)</dt><dd>{money(shown(result.channel.commissionCost))}</dd></div><div><dt>Pagamento online ({number(result.channel.effectivePaymentPercent)}% efetivos)</dt><dd>{money(shown(result.channel.paymentCost))}</dd></div>{result.channel.otherFeePercent > 0 && <div><dt>Taxas opcionais ({number(result.channel.otherFeePercent)}%)</dt><dd>{money(shown(result.channel.otherFeeCost))}</dd></div>}</>}
+      {result.channel.id === 'direct' && <div><dt>Taxas de pagamento</dt><dd>{money(shown(result.feeCost))}</dd></div>}
+      <div><dt>Impostos ({number(result.settings.taxPercent)}%)</dt><dd>{money(shown(result.taxCost))}</dd></div>
     </dl>
+    {result.channel.id !== 'direct' && <p className="channel-result-note">Faturamento simulado: {money(shown(result.channel.grossMonthly))}. {monthlyLabels[result.channel.monthlyStatus]}: {money(shown(result.channel.monthly))}/mês. No preço sugerido, a mensalidade considerada é {money(shown(result.channel.suggestedMonthly))}/mês.</p>}
     <div className="budget-contribution"><span>Contribuição antes dos fixos</span><strong>{money(shown(result.contribution))}</strong><small>{number(shown(result.contributionMarginPercent))}% do preço testado. Esse valor ainda paga os custos fixos.</small></div>
     <div className={`budget-net-result ${result.netUnit < 0 ? 'is-negative' : ''}`}><span>Resultado unitário estimado</span><strong>{money(shown(result.netUnit))}</strong><small>Depois dos custos variáveis, taxas e rateio dos fixos.</small></div>
     <div className="budget-monthly"><div><span>Resultado mensal estimado</span><strong>{money(shown(result.netMonthly))}</strong></div><div><span>Ponto de equilíbrio</span><strong>{!invalidDraft && result.breakEvenUnits !== null ? `${number(result.breakEvenUnits, 0)} batatas` : 'Não calculável'}</strong></div></div>
@@ -152,7 +162,7 @@ export default function Budget({ sharedBudget }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const values = { ...defaultFields, ...sharedBudget.values };
   const selected = Array.isArray(values['simulation.fillings']) ? values['simulation.fillings'] : [];
-  const result = estimate(values);
+  const result = estimateChannel(values);
   const inputErrors = configurationErrors(values);
   const localErrors = Object.values(fieldErrors);
   const errors = [...new Set([...localErrors, ...inputErrors, ...result.alerts.filter((item) => item.severity !== 'warning').map((item) => item.message)])];
@@ -199,6 +209,7 @@ export default function Budget({ sharedBudget }) {
     {errors.length > 0 && <div className="budget-alert error" role="alert"><WarningCircle size={20} aria-hidden="true" /><div><strong>Revise os valores antes de salvar.</strong><ul>{errors.slice(0, 6).map((message) => <li key={message}>{message}</li>)}</ul>{errors.length > 6 && <p>Há mais {errors.length - 6} campos para revisar.</p>}</div></div>}
     {warnings.map((message) => <div key={message} className="budget-alert warning"><WarningCircle size={20} aria-hidden="true" /><p>{message}</p></div>)}
     <div role="tablist" aria-label="Ferramentas do orçamento" className="budget-tabs">{tabs.map((item) => <button key={item.id} type="button" role="tab" id={`budget-tab-${item.id}`} aria-selected={tab === item.id} aria-controls={`budget-panel-${item.id}`} tabIndex={tab === item.id ? 0 : -1} onClick={() => setTab(item.id)} onKeyDown={tabKeys}>{item.name}</button>)}</div>
+    <div className="budget-channel-bar"><div className="budget-field"><label htmlFor="budget-channel">Canal para simular</label><select id="budget-channel" value={values['channel.plan']} disabled={disabled} onChange={(event) => sharedBudget.edit('channel.plan', event.target.value)}>{salesChannels.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div><div><p>{salesChannels.find((item) => item.id === values['channel.plan'])?.description}</p><button type="button" onClick={() => setTab('canais')}>Comparar canais e ajustar taxas</button></div></div>
     <div className="budget-workspace"><div role="tabpanel" id={`budget-panel-${tab}`} aria-labelledby={`budget-tab-${tab}`} className="budget-editor" tabIndex={0}>
       {tab === 'simular' && <>
         <div className="budget-section-heading"><h3>Monte uma batata</h3><p>Base + uma escolha de queijo + até três recheios.</p></div>
@@ -228,6 +239,7 @@ export default function Budget({ sharedBudget }) {
         <div className="budget-section-heading recipe-heading"><h3>Composição dos recheios</h3><p>São receitas de partida, ainda para testar. Ajuste as partes: elas serão proporcionais ao peso do recheio na batata.</p></div>
         {fillings.map((filling) => { const total = Object.keys(filling.parts).reduce((sum, id) => sum + values[`recipes.${filling.id}.${id}`], 0); return <fieldset key={filling.id} className="budget-fieldset budget-recipe"><legend>{filling.name}</legend><p className="budget-help">{number(total)} partes no total. Em uma porção de 150 g, 50 partes de 100 viram 75 g.</p><div className="budget-recipe-inputs">{Object.keys(filling.parts).map((id) => <NumberField key={id} {...fieldProps} path={`recipes.${filling.id}.${id}`} label={ingredientById[id].name} value={values[`recipes.${filling.id}.${id}`]} unit="partes" context={filling.name} />)}</div></fieldset>; })}
       </>}
+      {tab === 'canais' && <SalesChannels values={values} edit={sharedBudget.edit} fieldProps={fieldProps} NumberField={NumberField} invalid={invalid} />}
       {tab === 'operacao' && <>
         <div className="budget-section-heading"><h3>Como vamos operar?</h3><p>Estes valores são hipóteses de planejamento. Trabalho, energia, taxas e custos fixos não são cotações de loja.</p></div>
         <div className="budget-operation-grid">{operationFields.map(({ id, label, unit, ...props }) => settingField(id, label, unit, props))}</div>
