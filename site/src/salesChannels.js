@@ -1,7 +1,7 @@
 import { defaultFields, estimate, getSettings } from './budgetCatalog.js';
 
 export const salesChannels = [
-  { id: 'direct', name: 'Direto / personalizado', description: 'Usa as taxas e o custo de entrega cadastrados na Operação.' },
+  { id: 'direct', name: 'Direto / personalizado', description: 'Usa as taxas e o custo de entrega cadastrados em Vendas e entrega.' },
   { id: 'ifood-basic', name: 'iFood Básico', description: 'Comissão do aplicativo e entrega feita pela própria loja.' },
   { id: 'ifood-delivery', name: 'Entrega iFood', description: 'Comissão com logística iFood e eventuais subsídios pagos pela loja.' },
 ];

@@ -6,17 +6,17 @@ A referência de implementação é o [catálogo](../site/src/budgetCatalog.js),
 
 ## Como usar o caderno juntos
 
-1. Abrir o mesmo link completo do caderno nos dois aparelhos. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
-2. Comparar uma composição: queijo e de um a três recheios. Os campos mostram o custo dos ingredientes da quantidade escolhida; os recheios selecionados mostram peso e custo. A tabela completa continua abaixo para conferir a compra de cada ingrediente.
-3. Em **Custos e preços**, informar diretamente o **Preço por kg** dos ingredientes, **Preço por litro** dos líquidos e **Preço por unidade** das embalagens. Batata a R$ 5,99/kg: digitar somente 5,99. O peso usado na porção vem da aba Simular; não é necessário cadastrar peso de pacote. Ajustar rendimento, receitas e custos da operação com os testes reais.
-4. Informar o preço que pretendem praticar e o volume mensal. Escolher o canal no seletor **Canal para simular** e comparar as taxas em **Canais e iFood**.
+1. Abrir o mesmo link completo do caderno nos dois aparelhos. A Visão geral explica o projeto e oferece **Testar uma batata**. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
+2. Em **Simular preço**, comparar uma composição: queijo e de um a três recheios. Os campos mostram o custo dos ingredientes da quantidade escolhida; os recheios selecionados mostram peso e custo. Abrir o bloco de quantidades para comprar para conferir cada ingrediente.
+3. Em **Preços de compra**, informar diretamente o **Preço por kg** dos ingredientes, **Preço por litro** dos líquidos e **Preço por unidade** das embalagens. Batata a R$ 5,99/kg: digitar somente 5,99. O peso usado na porção vem de Simular preço; não é necessário cadastrar peso de pacote. Ajustar o rendimento aqui e a composição em **Recheios e sabores** com os testes reais.
+4. Informar o preço que pretendem praticar em **Simular preço** e o volume mensal em **Despesas e meta**. Escolher o canal no seletor **Canal para simular** e comparar as taxas em **Vendas e entrega**; abrir **Ajustar condições** para editar taxas e entrega. Custos fixos, custos por batata, perdas, impostos e margem ficam em Despesas e meta.
 5. Salvar e aguardar a confirmação **“Orçamento salvo para vocês dois.”** No outro aparelho, conferir a mesma composição e os valores confirmados.
 
 As edições recalculam a simulação na aba atual; tornam-se compartilhadas depois da resposta do servidor. Em uma falha de salvamento, as edições continuam na aba e podem ser reenviadas. Se outro aparelho salvar primeiro, o caderno carrega os valores novos e preserva o rascunho para revisão antes de salvar novamente.
 
 Os cadernos anteriores continuam com o mesmo custo: preços de embalagens pesquisadas são convertidos para kg, litro ou unidade na leitura, sem arredondar o cálculo ou alterar os valores salvos. Só editar um preço grava sua base normalizada (1000 g/ml ou uma unidade), com preço e base enviados juntos. As fontes e os detalhes dos pacotes originais ficam em **Referência da pesquisa**. Se dois aparelhos editarem o preço, a revisão mostra o conflito pelo mesmo kg, litro ou unidade.
 
-O seletor **Eu (filho) / Mãe** fica somente na Galeria e identifica quem marca os favoritos de nome e logo.
+O seletor **Eu (filho) / Mãe** fica somente em Marca e identifica quem marca os favoritos de nome e logo. Trocar de ferramenta ou área preserva as edições locais, incluindo campos que precisam de correção. Favoritos continuam sendo preferências; receitas e preços salvos continuam sendo simulações, sem aprovação automática.
 
 ## Venda direta e planos do iFood
 

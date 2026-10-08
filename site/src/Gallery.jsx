@@ -4,6 +4,17 @@ import { names, references, filters } from './data';
 
 const asset = filename => `${import.meta.env.BASE_URL}referencias/${filename}`;
 const emptyChoices = { names: [], references: [] };
+const brandSections = [
+  { id: 'gallery-favoritos', label: 'Favoritos' },
+  { id: 'gallery-nomes', label: 'Nomes' },
+  { id: 'gallery-logos', label: 'Referências' },
+];
+const readBrandSection = () => {
+  const hash = window.location.hash.slice(1);
+  if (hash === 'nomes') return 'gallery-nomes';
+  if (hash === 'logos') return 'gallery-logos';
+  return brandSections.some(section => section.id === hash) ? hash : 'gallery-favoritos';
+};
 
 function FavoriteButton({ selected, onClick, label, compact = false, text = 'Gostei deste nome', disabled = false, pending = false }) {
   const visibleText = pending ? 'Salvando…' : selected ? 'Favorito' : text;
@@ -99,21 +110,42 @@ export default function Gallery({ shared }) {
   const choices = shared.person ? shared.room?.people[shared.person] ?? emptyChoices : emptyChoices;
   const [filter, setFilter] = useState('todas');
   const [openReference, setOpenReference] = useState(null);
+  const [section, setSection] = useState(readBrandSection);
   const visibleReferences = references.filter(item => filter === 'todas' || item.category === filter);
   const toggle = (type, id) => shared.toggle(type, id);
   const pending = (type, id) => shared.pendingKeys.has(`${shared.person}:${type}:${id}`);
   const resetBlocked = [...shared.pendingKeys, ...shared.failedKeys].some(key => key.endsWith(':reset'));
   const blocked = (type, id) => !shared.person || !shared.room || resetBlocked || shared.failedKeys.has(`${shared.person}:${type}:${id}`);
 
+  useEffect(() => {
+    const onHash = () => setSection(readBrandSection());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
   return (
     <>
+      <nav className="gallery-toolbar" aria-label="Explorar a marca">
+        <div className="filter-list">
+          {brandSections.map(item => (
+            <a
+              key={item.id}
+              className={`filter-button ${section === item.id ? 'active' : ''}`}
+              href={`#${item.id}`}
+              aria-current={section === item.id ? 'location' : undefined}
+            >
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </nav>
       <section id="gallery-favoritos" className="favorites-section page-width">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">Galeria de nome e logo</span>
-            <h2 className="font-display">As escolhas de vocês</h2>
+            <span className="eyebrow">PREFERÊNCIAS DOS DOIS</span>
+            <h2 className="font-display">Favoritos para conversar</h2>
           </div>
-          <p>Os favoritos do filho e da mãe ficam lado a lado para ajudar na conversa sobre a nossa marca.</p>
+          <p>As preferências do filho e da mãe ficam lado a lado. Marcar um favorito ajuda na conversa; o nome e a logo ainda serão definidos.</p>
         </div>
 
         {!shared.room ? (
@@ -196,17 +228,13 @@ export default function Gallery({ shared }) {
             </button>
           )}
         </div>
-        <nav className="mt-6 flex flex-wrap gap-x-6 gap-y-3" aria-label="Explorar a galeria">
-          <a className="text-link" href="#gallery-nomes">Ver ideias de nome</a>
-          <a className="text-link" href="#gallery-logos">Ver referências de logo</a>
-        </nav>
       </section>
 
       <section id="gallery-nomes" className="section page-width">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">01 / O NOME</span>
-            <h2 className="font-display">Como vamos nos chamar?</h2>
+            <span className="eyebrow">IDEIAS DE NOME</span>
+            <h2 className="font-display">Nomes para comparar</h2>
           </div>
           <p>Leia em voz alta. Imagine alguém pedindo a nossa batata pelo nome.</p>
         </div>
@@ -240,12 +268,12 @@ export default function Gallery({ shared }) {
       <section className="direction-section">
         <div className="page-width direction-grid">
           <div>
-            <span className="eyebrow">O JEITO QUE BUSCAMOS</span>
+            <span className="eyebrow">SUGESTÃO DE DIREÇÃO VISUAL</span>
             <h2 className="font-display">Acolhedor.<br />Simples. <em>Nosso.</em></h2>
           </div>
           <div className="direction-copy">
-            <p>Uma identidade que lembre o conforto de comer em casa. Letras gostosas de ler, poucos elementos e um detalhe com personalidade.</p>
-            <p className="mt-5 text-muted">Creme, marrom e terracota são uma paleta para experimentar. A logo e as cores ainda estão em aberto.</p>
+            <p>Uma direção para experimentar: lembrar o conforto de comer em casa, com letras fáceis de ler, poucos elementos e um detalhe com personalidade.</p>
+            <p className="mt-5 text-muted">Paleta sugerida: creme, marrom e terracota. A logo e as cores ainda estão em aberto.</p>
             <div className="palette" aria-label="Paleta sugerida: creme, marrom e terracota">
               <span className="swatch swatch-cream">Creme</span>
               <span className="swatch swatch-brown">Marrom</span>
@@ -258,8 +286,8 @@ export default function Gallery({ shared }) {
       <section id="gallery-logos" className="section page-width">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">02 / AS REFERÊNCIAS</span>
-            <h2 className="font-display">Olhar para descobrir o nosso estilo.</h2>
+            <span className="eyebrow">INSPIRAÇÃO PARA A MARCA</span>
+            <h2 className="font-display">Referências para descobrir o estilo</h2>
           </div>
           <p>{references.length} logos reais para conversar sobre letras, cores e desenhos. Cada uma tem sua fonte.</p>
         </div>

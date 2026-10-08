@@ -2,7 +2,7 @@
 
 Atualizado em **06/10/2026**. Documento de trabalho para vocês dois organizarem custos, montagem, marca e decisões do restaurante.
 
-**Prioridade atual:** testar o orçamento e a montagem das batatas. A escolha do nome e da direção da logo continua na Galeria.
+**Prioridade atual:** testar o orçamento e a montagem das batatas. A escolha do nome e da direção da logo continua na área Marca (antiga Galeria).
 
 ## 1. O que já está definido
 
@@ -187,6 +187,6 @@ Os endereços originais das imagens e das páginas estão em [fontes.json](E:/De
 
 **Elementos que os dois querem evitar:** a registrar.
 
-O [caderno do restaurante](https://murillou4.github.io/restaurante-identidade/) reúne Orçamento, Galeria e Planejamento. Para ver os mesmos dados em aparelhos diferentes, usem o link completo criado pelo botão **Copiar link compartilhado**. Favoritos são salvos online; edições de custos e receitas são compartilhadas ao clicar em **Salvar orçamento**. Nenhuma preferência torna um nome ou uma direção visual uma decisão final.
+O [caderno do restaurante](https://murillou4.github.io/restaurante-identidade/) reúne Visão geral, Orçamento, Marca e Plano de abertura. A Visão geral explica o objetivo e os próximos passos; o plano separa decisões confirmadas, testes, pendências e ideias para depois. Para ver os mesmos dados em aparelhos diferentes, usem o link completo criado pelo botão **Copiar link compartilhado**. Favoritos são salvos online; edições de custos e receitas são compartilhadas ao clicar em **Salvar orçamento**. Nenhuma preferência torna um nome ou uma direção visual uma decisão final.
 
 O modelo de orçamento e suas hipóteses estão em [ORCAMENTO.md](E:/Dev/Trabalho/Restaurante/docs/ORCAMENTO.md), e as fontes de preços em [PRECOS-REFERENCIA.md](E:/Dev/Trabalho/Restaurante/docs/PRECOS-REFERENCIA.md). Estes registros organizam o trabalho; os pesos e preços finais precisam ser conferidos com as compras e os testes de vocês.

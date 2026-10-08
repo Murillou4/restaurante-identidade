@@ -86,7 +86,8 @@ button:disabled:active { transform: none; }
 .favorite-button.compact { padding: 0; width: 44px; height: 44px; min-height: 44px; border-radius: 50%; background: #fbf8f1; }
 .section-footnote { margin-top: 27px; color: var(--color-muted); font-size: 14px; line-height: 1.6; max-width: 850px; }
 .direction-section { background: #ece3d4; border-block: 1px solid #ddd1bf; padding-block: 64px; }
-.direction-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+.direction-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 80px; align-items: center; }
+.direction-grid > div { min-width: 0; }
 .direction-grid h2 { font-size: 45px; font-weight: 450; letter-spacing: -.035em; line-height: 1.18; margin-top: 18px; }
 .direction-copy > p { max-width: 480px; font-size: 18px; line-height: 1.7; }
 .palette { display: flex; margin-top: 27px; gap: 10px; }
@@ -188,7 +189,7 @@ button:disabled:active { transform: none; }
   .identity-row { gap: 12px; }
   .sync-status { margin-left: 0; width: 100%; }
   .direction-section { padding-block: 42px; }
-  .direction-grid { grid-template-columns: 1fr; gap: 24px; }
+  .direction-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .direction-grid h2 { font-size: 39px; }
   .direction-copy > p { font-size: 17px; }
   .palette { gap: 8px; }
