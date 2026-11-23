@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultFields, estimate, getIngredientPriceEdit, ingredientValues, ingredients, presets, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD } from '../src/budgetCatalog.js';
+import { defaultFields, estimate, getIngredientPriceEdit, ingredientValues, ingredients, presets, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD, normalizeMeasureUnit } from '../src/budgetCatalog.js';
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
 test('cesta usa peso cru comprado da batata e não aumenta compra por perda do forno', () => {
@@ -288,4 +288,43 @@ test('cadastro personalizado ignora conteúdo inválido e serializa apenas itens
   assert.deepEqual(readCustomIngredients({ [CUSTOM_CATALOG_FIELD]: 'invalid json' }), []);
   assert.deepEqual(readCustomIngredients({ [CUSTOM_CATALOG_FIELD]: JSON.stringify([{ id: 'bad', name: 'X', type: 'food', unit: 'g' }]) }), []);
   assert.equal(serializeCustomIngredients([{ id: 'constructor', name: 'Pollution', type: 'food', unit: 'g' }]), '[]');
+});
+
+
+test('itens personalizados aceitam compra em kg e litro sem perder a unidade de cálculo', () => {
+  const kgId = 'custom-12345678-kg00';
+  const literId = 'custom-87654321-lt00';
+  const items = [
+    { id: kgId, name: 'Farinha', type: 'food', category: 'ingredient', unit: 'kg', custom: true, status: 'estimate', yieldPercent: 100, amount: 1 },
+    { id: literId, name: 'Molho líquido', type: 'packaging', category: 'material', unit: 'l', custom: true, status: 'estimate', yieldPercent: 100, amount: 0.1 },
+  ];
+  const values = {
+    ...defaultFields,
+    [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients(items),
+    [`ingredients.${kgId}.price`]: 25,
+    [`ingredients.${kgId}.packageSize`]: 5,
+    [`recipes.frango.${kgId}`]: 10,
+    [`ingredients.${literId}.price`]: 12,
+    [`ingredients.${literId}.packageSize`]: 2,
+    [`ingredients.${literId}.amount`]: 0.1,
+  };
+  const result = estimate(values);
+  const flour = result.rows.find((row) => row.id === kgId);
+  assert.ok(flour);
+  assert.equal(flour.unit, 'g');
+  close(flour.unitPrice, 5);
+  close(flour.cost, flour.quantity / 1000 * 5);
+  assert.equal(normalizeMeasureUnit('kg'), 'g');
+  assert.equal(normalizeMeasureUnit('l'), 'ml');
+  assert.equal(normalizeMeasureUnit('un'), 'un');
+  close(ingredientValues(items[1], values).unitPrice, 6);
+  close(result.packagingCost, 1.9769 + 0.6);
+});
+
+test('trocar categoria de item personalizado mantém tipos permitidos e unidade independente', () => {
+  const item = { id: 'custom-abcdef12-3456', name: 'Suco', type: 'food', category: 'beverage', unit: 'l', custom: true };
+  const parsed = readCustomIngredients({ [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients([item]) });
+  assert.equal(parsed[0].category, 'beverage');
+  assert.equal(parsed[0].type, 'food');
+  assert.equal(parsed[0].unit, 'l');
 });
