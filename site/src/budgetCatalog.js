@@ -1,6 +1,7 @@
 import { calculateBudget, distributeFillings, DEFAULT_BUDGET_SETTINGS } from './budgetMath.js';
 
 export const RESEARCH_DATE = '06/10/2026';
+export const CUSTOM_CATALOG_FIELD = 'settings.customCatalog';
 const sousa = 'https://www.cardapio.datacaixa.com.br/loja=7655';
 const moreira = 'https://www.moreira.com.br/p/';
 const jk = 'https://www.embalagensjk.com.br/produto/';
@@ -36,6 +37,32 @@ export const ingredients = [
   ingredient('guardanapo', 'Guardanapo', 'un', 50, 2.8, 'JK Embalagens · Campinas', `${jk}guardanapo-30x30-50x1`, 'Florax 30 × 30 cm. Dois por pedido na simulação.', 100, 'reference', 'packaging', 2),
 ];
 
+/** User-created items are stored in one shared JSON field so older cadernos
+ * can migrate without losing any of their existing ingredient values. Numeric
+ * purchase values remain normal budget fields and therefore use the same
+ * validation and conflict handling as the built-in catalog. */
+export function readCustomIngredients(values = {}) {
+  let parsed;
+  try { parsed = JSON.parse(values[CUSTOM_CATALOG_FIELD] || '[]'); } catch { return []; }
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter((item) =>
+    item && typeof item === 'object' &&
+    typeof item.id === 'string' && /^custom-[a-f0-9-]{8,64}$/i.test(item.id) &&
+    typeof item.name === 'string' && item.name.trim().length > 0 &&
+    ['food', 'packaging'].includes(item.type) &&
+    ['g', 'ml', 'un'].includes(item.unit) &&
+    item.custom === true
+  ).map((item) => ({ ...item, name: item.name.trim() }));
+}
+
+export function serializeCustomIngredients(items) {
+  return JSON.stringify(items.filter((item) =>
+    item && typeof item.id === 'string' && /^custom-[a-f0-9-]{8,64}$/i.test(item.id) &&
+    typeof item.name === 'string' && item.name.trim() &&
+    ['food', 'packaging'].includes(item.type) && ['g', 'ml', 'un'].includes(item.unit)
+  ).map((item) => ({ ...item, name: item.name.trim(), custom: true })));
+}
+
 export const cheeses = [{ id: 'mucarela', name: 'Muçarela' }, { id: 'cheddar', name: 'Cheddar' }, { id: 'requeijao', name: 'Requeijão' }, { id: 'misto', name: 'Muçarela + cheddar' }, { id: 'nenhum', name: 'Sem queijo' }];
 export const fillings = [
   { id: 'frango', name: 'Frango cremoso', parts: { frango: 70, requeijao: 22, molho: 5, cebola: 2, alho: 1 } },
@@ -58,6 +85,7 @@ export const presets = [
 ];
 
 export const defaultFields = Object.fromEntries([
+  [CUSTOM_CATALOG_FIELD, '[]'],
   ...Object.entries({ ...DEFAULT_BUDGET_SETTINGS, packagingPerUnit: 0, palhaGrams: 0, greensGrams: 2, lossPercent: 5 }).map(([id, value]) => [`settings.${id}`, value]),
   ...ingredients.flatMap((item) => [['price', item.price], ['packageSize', item.packageSize], ['yieldPercent', item.yieldPercent], ...(item.type === 'packaging' ? [['amount', item.amount]] : [])].map(([field, value]) => [`ingredients.${item.id}.${field}`, value])),
   ...fillings.flatMap((item) => Object.entries(item.parts).map(([id, value]) => [`recipes.${item.id}.${id}`, value])),
@@ -87,12 +115,12 @@ export function getIngredientPriceEdit(item, unitPrice) {
 
 // Component costs use the same unit conversion and preparation yield as the
 // full portion, and exclude its reserve, packaging and operating costs.
-function costQuantities(values, quantities) {
+function costQuantities(values, quantities, catalog = ingredients) {
   const entries = Object.entries(quantities);
   if (!entries.length) return 0;
   const rows = [];
   for (const [id, quantity] of entries) {
-    const item = ingredients.find((ingredient) => ingredient.id === id && ingredient.type === 'food');
+    const item = catalog.find((ingredient) => ingredient.id === id && ingredient.type === 'food');
     if (!item) return null;
     rows.push({ id, name: item.name, unit: item.unit, quantity, ...ingredientValues(item, values) });
   }
@@ -101,6 +129,8 @@ function costQuantities(values, quantities) {
 
 export function estimate(values, selection) {
   const settings = getSettings(values);
+  const customIngredients = readCustomIngredients(values);
+  const catalog = [...ingredients, ...customIngredients];
   const selectedFillings = selection?.fillings ?? values['simulation.fillings'];
   const cheese = selection?.cheese ?? values['simulation.cheeseId'];
   const portions = distributeFillings(selectedFillings, settings.fillingTotalGrams);
@@ -110,8 +140,8 @@ export function estimate(values, selection) {
     ? { mucarela: settings.cheeseGrams / 2, cheddar: settings.cheeseGrams / 2 }
     : cheese === 'nenhum' ? {} : { [cheese]: settings.cheeseGrams };
   const costs = {
-    base: Object.fromEntries(Object.entries(baseQuantities).map(([id, quantity]) => [id, costQuantities(values, { [id]: quantity })])),
-    cheese: costQuantities(values, cheeseQuantities),
+    base: Object.fromEntries(Object.entries(baseQuantities).map(([id, quantity]) => [id, costQuantities(values, { [id]: quantity }, catalog)])),
+    cheese: costQuantities(values, cheeseQuantities, catalog),
     fillings: [],
     fillingsTotal: null,
   };
@@ -125,7 +155,9 @@ export function estimate(values, selection) {
       costs.fillings.push({ ...portion, cost: null });
       continue;
     }
-    const parts = Object.keys(filling.parts).map((id) => [id, values[`recipes.${filling.id}.${id}`]]);
+    const customPartIds = customIngredients.filter((item) => item.type === 'food' && Object.hasOwn(values, `recipes.${filling.id}.${item.id}`)).map((item) => item.id);
+    const partIds = [...Object.keys(filling.parts), ...customPartIds];
+    const parts = partIds.map((id) => [id, values[`recipes.${filling.id}.${id}`]]);
     const total = parts.reduce((sum, [, grams]) => sum + grams, 0);
     if (!(total > 0) || parts.some(([, grams]) => !Number.isFinite(grams) || grams < 0)) {
       alerts.push({ severity: 'error', message: `Informe a composição de ${filling.name}.` });
@@ -134,16 +166,16 @@ export function estimate(values, selection) {
     }
     const fillingQuantities = Object.fromEntries(parts.map(([id, grams]) => [id, portion.grams * grams / total]));
     for (const [id, quantity] of Object.entries(fillingQuantities)) add(id, quantity);
-    costs.fillings.push({ ...portion, cost: costQuantities(values, fillingQuantities) });
+    costs.fillings.push({ ...portion, cost: costQuantities(values, fillingQuantities, catalog) });
   }
   if (portions.valid && costs.fillings.every((item) => Number.isFinite(item.cost))) {
     const total = costs.fillings.reduce((sum, item) => sum + item.cost, 0);
     costs.fillingsTotal = Number.isFinite(total) ? total : null;
   }
-  const rows = ingredients.filter((item) => item.type === 'food' && quantities[item.id] !== 0 && quantities[item.id] !== undefined).map((item) => ({ id: item.id, name: item.name, unit: item.unit, quantity: quantities[item.id], ...ingredientValues(item, values) }));
-  const packaging = ingredients.filter((item) => item.type === 'packaging').map((item) => ({ id: item.id, name: item.name, ...ingredientValues(item, values) }));
+  const rows = catalog.filter((item) => item.type === 'food' && quantities[item.id] !== 0 && quantities[item.id] !== undefined).map((item) => ({ id: item.id, name: item.name, unit: item.unit, quantity: quantities[item.id], ...ingredientValues(item, values) }));
+  const packaging = catalog.filter((item) => item.type === 'packaging').map((item) => ({ id: item.id, name: item.name, ...ingredientValues(item, values) }));
   const packagingCost = packaging.reduce((sum, item) => sum + item.unitPrice * item.amount, 0);
   const result = calculateBudget({ rows, settings: { ...settings, packagingPerUnit: settings.packagingPerUnit + packagingCost } });
   const allAlerts = [...alerts, ...result.alerts];
-  return { ...result, valid: result.valid && portions.valid && !alerts.some((item) => item.severity === 'error'), alerts: allAlerts, portions: portions.portions, packaging, packagingCost, settings, cheese, selectedFillings, costs };
+  return { ...result, catalog, customIngredients, valid: result.valid && portions.valid && !alerts.some((item) => item.severity === 'error'), alerts: allAlerts, portions: portions.portions, packaging, packagingCost, settings, cheese, selectedFillings, costs };
 }
