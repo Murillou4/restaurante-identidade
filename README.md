@@ -1,6 +1,6 @@
 # Nossa batataria
 
-Caderno interno para mãe e filho organizarem um delivery de batata recheada em Senador Canedo, Goiás. Organiza o projeto em **Visão geral, Orçamento, Marca e Plano de abertura**. A página não recebe pedidos nem vende produtos.
+Caderno interno para mãe e filho organizarem a produção caseira de batatas recheadas, por encomenda e com retirada no local em Senador Canedo, Goiás. Organiza o projeto em **Visão geral, Orçamento, Marca e Plano de abertura**. A página não recebe pedidos nem vende produtos.
 
 O negócio está em definição. Os quatro nomes são sugestões. As dez logos são referências de outras marcas, com links para as respectivas fontes.
 
@@ -25,11 +25,11 @@ O workflow `.github/workflows/pages.yml` publica `site/dist` no GitHub Pages. Os
 
 ## Conteúdo e escolhas
 
-A **Visão geral** é a entrada do caderno e explica o objetivo, a prioridade de testar custos e montagem e os próximos passos. O **Orçamento** reúne cinco ferramentas: **Simular preço**, **Preços de compra**, **Recheios e sabores**, **Vendas e entrega** e **Despesas e meta**. A área **Marca** separa favoritos, nomes e referências. O **Plano de abertura** distingue o que já está definido, o que está em teste, o que falta decidir e as ideias para depois.
+A **Visão geral** é a entrada do caderno e explica o objetivo, a prioridade de testar custos e montagem e os próximos passos. O **Orçamento** reúne quatro ferramentas: **Simular preço**, **Preços de compra**, **Recheios e sabores** e **Despesas e meta**. A simulação considera venda direta por encomenda e retirada no local. A área **Marca** separa favoritos, nomes e referências. O **Plano de abertura** distingue o que já está definido, o que está em teste, o que falta decidir e as ideias para depois.
 
 Na simulação, custo completo, preço sugerido e resultado por batata aparecem em destaque. A composição dos custos, as quantidades para comprar e a projeção mensal ficam em blocos expansíveis. Nas demais ferramentas, um resumo compacto permite voltar à simulação. Os formulários continuam montados ao trocar de área ou ferramenta, preservando também textos inválidos que ainda precisam de correção.
 
-A navegação usa hashes: `#inicio`, `#orcamento`, `#galeria` (Marca) e `#planejamento` (Plano de abertura). As ferramentas aceitam links diretos `#orcamento-simular`, `#orcamento-custos`, `#orcamento-receitas`, `#orcamento-canais` e `#orcamento-operacao`. Links antigos de nomes, logos e favoritos continuam funcionando. O link compartilhado abre a Visão geral do mesmo caderno.
+A navegação usa hashes: `#inicio`, `#orcamento`, `#galeria` (Marca) e `#planejamento` (Plano de abertura). As ferramentas aceitam links diretos `#orcamento-simular`, `#orcamento-custos`, `#orcamento-receitas` e `#orcamento-operacao`. O atalho antigo `#orcamento-canais` redireciona para Despesas e meta. Links antigos de nomes, logos e favoritos continuam funcionando. O link compartilhado abre a Visão geral do mesmo caderno.
 
 - `DEFINICOES-DO-RESTAURANTE.md`: decisões confirmadas, sugestões e próximas definições.
 - `site/src/data.js`: nomes e referências apresentados no site.
@@ -40,7 +40,7 @@ Favoritos e orçamento são salvos online em um caderno identificado pelo parâm
 
 Abra [o site](https://murillou4.github.io/restaurante-identidade/) e use **Copiar link compartilhado**. É preciso compartilhar o link completo do caderno: abrir apenas a página inicial em outro aparelho cria outro caderno. Para marcar favoritos, selecione quem está marcando em Marca. Quem tem o link pode ler e alterar os dados, sem conta ou senha.
 
-No Orçamento, mudanças alteram a simulação imediatamente; clique em **Salvar orçamento** para guardar os dados para os dois aparelhos. Edições sem salvar permanecem na aba e são protegidas de atualizações de outro aparelho. Uma revisão do servidor impede sobrescrever silenciosamente um orçamento antigo. Ao salvar, o caderno guarda também valores iniciais que ainda não estavam registrados, incluindo novos ajustes de canal em cadernos antigos.
+No Orçamento, mudanças alteram a simulação imediatamente; clique em **Salvar orçamento** para guardar os dados para os dois aparelhos. Edições sem salvar permanecem na aba e são protegidas de atualizações de outro aparelho. Uma revisão do servidor impede sobrescrever silenciosamente um orçamento antigo. Ao salvar, o caderno guarda também valores iniciais que ainda não estavam registrados, incluindo a taxa média de pagamento nos cadernos antigos.
 
 `site/src/useSharedChoices.js` conecta o GitHub Pages à API hospedada em Sites, com persistência SQLite (D1). As gravações usam valores explícitos e o site só confirma um favorito depois da resposta do servidor. Falhas oferecem uma tentativa de repetição e não substituem as últimas escolhas confirmadas.
 
@@ -52,7 +52,7 @@ O código do backend é mantido no projeto de hospedagem separado `shared-backen
 
 Em **Preços de compra**, a compra é informada diretamente por kg, litro ou unidade. A leitura converte as referências e os cadernos antigos sem alterar seus custos; uma edição explícita salva preço e base de conversão juntos. Os dados das embalagens originais da pesquisa ficam em uma seção recolhida.
 
-`salesChannels.js` compara venda direta, iFood Básico com entrega própria e iFood Entrega. Em **Vendas e entrega**, a comparação aparece primeiro; **Ajustar condições** reúne comissão, pagamento online, participação das vendas online, mensalidades, carência, entrega, promoções e outras taxas. Taxas diretas e entrega subsidiada são editadas somente aqui. O volume mensal fica em **Despesas e meta**, junto dos custos por batata, custos fixos, perdas, impostos e margem. O canal escolhido recalcula também as sugestões de receitas. Os ajustes são salvos no mesmo orçamento compartilhado. A pesquisa oficial de **06/10/2026** e as hipóteses sobre a base das taxas estão em [docs/IFOOD.md](docs/IFOOD.md).
+A operação está definida como venda direta por encomenda, com retirada no local. Em **Despesas e meta**, a taxa média de pagamento pode ser informada conforme a tarifa real da maquininha ou do meio usado. Não há comissão de plataforma, mensalidade de aplicativo, subsídio de entrega ou frete ao cliente na simulação. O volume mensal fica na mesma área, junto dos custos por batata, custos fixos, perdas, impostos e margem. A taxa e os demais ajustes são salvos no orçamento compartilhado.
 
 Os preços publicados por lojas de Goiânia em 06/10/2026 são referências, sem garantia de disponibilidade ou entrega. Itens estimados e indisponíveis têm rótulos próprios. Porções, receitas, rendimento, margem, energia e trabalho são hipóteses editáveis, não definições finais. Consulte `docs/ORCAMENTO.md` e `docs/PRECOS-REFERENCIA.md`.
 
