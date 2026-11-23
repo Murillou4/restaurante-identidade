@@ -126,7 +126,7 @@ function IngredientRow({ item, values, fieldProps, hidden }) {
   </article>;
 }
 
-function CustomIngredientRow({ item, values, fieldProps, onMetadataChange, onRemove }) {
+function CustomIngredientRow({ item, values, fieldProps, onMetadataChange, onRemove, hidden }) {
   const data = ingredientValues(item, values);
   const unitName = item.unit === 'g' ? 'g' : item.unit === 'ml' ? 'ml' : 'un';
   const baseUnit = item.unit === 'g' ? 'kg' : item.unit === 'ml' ? 'L' : 'un';
@@ -137,10 +137,10 @@ function CustomIngredientRow({ item, values, fieldProps, onMetadataChange, onRem
     if (next && next !== item.name) onMetadataChange(item.id, { name: next });
     else setName(item.name);
   };
-  return <article className="budget-ingredient budget-custom-ingredient">
+  return <article className="budget-ingredient budget-custom-ingredient" hidden={hidden}>
     <div className="budget-custom-meta">
       <div className="budget-field"><label htmlFor={`custom-name-${item.id}`}>Nome do item</label><input id={`custom-name-${item.id}`} value={name} maxLength={80} onChange={(event) => setName(event.target.value)} onBlur={updateName} disabled={fieldProps.disabled} /></div>
-      <div className="budget-field"><label htmlFor={`custom-type-${item.id}`}>Categoria</label><select id={`custom-type-${item.id}`} value={item.type} disabled={fieldProps.disabled} onChange={(event) => onMetadataChange(item.id, { type: event.target.value })}><option value="food">Ingrediente</option><option value="packaging">Embalagem / material</option></select></div>
+      <div className="budget-field"><label htmlFor={`custom-category-${item.id}`}>Categoria</label><select id={`custom-category-${item.id}`} value={item.category ?? (item.type === 'packaging' ? 'packaging' : 'ingredient')} disabled={fieldProps.disabled} onChange={(event) => { const category = event.target.value; onMetadataChange(item.id, { category, type: ['packaging', 'material'].includes(category) ? 'packaging' : 'food' }); }}><option value="ingredient">Ingrediente</option><option value="beverage">Bebida</option><option value="packaging">Embalagem</option><option value="material">Material</option></select></div>
       <div className="budget-field"><label htmlFor={`custom-unit-${item.id}`}>Unidade</label><select id={`custom-unit-${item.id}`} value={item.unit} disabled={fieldProps.disabled} onChange={(event) => onMetadataChange(item.id, { unit: event.target.value })}><option value="g">Gramas (g)</option><option value="ml">Mililitros (ml)</option><option value="un">Unidade (un)</option></select></div>
     </div>
     <div className="budget-ingredient-inputs">
@@ -222,7 +222,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
   const [pendingFocus, setPendingFocus] = useState(null);
   const [query, setQuery] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
-  const [newItem, setNewItem] = useState({ name: '', type: 'food', unit: 'g', price: '', packageSize: '1000', yieldPercent: '100', amount: '1' });
+  const [newItem, setNewItem] = useState({ name: '', category: 'ingredient', unit: 'g', price: '', packageSize: '1000', yieldPercent: '100', amount: '1' });
   const values = { ...defaultFields, ...sharedBudget.values };
   const customIngredients = readCustomIngredients(values);
   const catalog = [...ingredients, ...customIngredients];
@@ -288,11 +288,12 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
     const amount = Number(newItem.amount.replace(',', '.'));
     if (!name || !Number.isFinite(price) || price < 0 || !Number.isFinite(packageSize) || packageSize <= 0 || !Number.isFinite(yieldPercent) || yieldPercent <= 0 || yieldPercent > 100 || !Number.isFinite(amount) || amount < 0) return;
     const id = `custom-${crypto.randomUUID()}`;
-    const item = { id, name, type: newItem.type, unit: newItem.unit, custom: true, status: 'estimate', yieldPercent, amount };
+    const type = ['packaging', 'material'].includes(newItem.category) ? 'packaging' : 'food';
+    const item = { id, name, category: newItem.category, type, unit: newItem.unit, custom: true, status: 'estimate', yieldPercent, amount };
     const changes = { [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients([...customIngredients, item]), [`ingredients.${id}.price`]: price, [`ingredients.${id}.packageSize`]: packageSize, [`ingredients.${id}.yieldPercent`]: yieldPercent, [`ingredients.${id}.amount`]: amount };
     if (item.type === 'food') for (const filling of fillings) changes[`recipes.${filling.id}.${id}`] = 0;
     sharedBudget.editMany(changes);
-    setNewItem({ name: '', type: 'food', unit: 'g', price: '', packageSize: '1000', yieldPercent: '100', amount: '1' });
+    setNewItem({ name: '', category: 'ingredient', unit: 'g', price: '', packageSize: '1000', yieldPercent: '100', amount: '1' });
     setQuery('');
   };
   const findField = useCallback((path) => {
@@ -367,11 +368,11 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
           <div className="budget-section-heading"><h3>Adicionar um item ao cadastro</h3><p>Inclua ingredientes, bebidas, embalagens ou outros materiais. Itens novos ficam disponíveis nas composições dos recheios quando forem ingredientes.</p></div>
           <div className="budget-add-grid">
             <div className="budget-field"><label htmlFor="new-item-name">Nome</label><input id="new-item-name" required maxLength={80} value={newItem.name} onChange={(event) => setNewItem((current) => ({ ...current, name: event.target.value }))} placeholder="Ex.: catupiry, refrigerante…" /></div>
-            <div className="budget-field"><label htmlFor="new-item-type">Categoria</label><select id="new-item-type" value={newItem.type} onChange={(event) => setNewItem((current) => ({ ...current, type: event.target.value }))}><option value="food">Ingrediente</option><option value="packaging">Embalagem / material</option></select></div>
+            <div className="budget-field"><label htmlFor="new-item-category">Categoria</label><select id="new-item-category" value={newItem.category} onChange={(event) => setNewItem((current) => ({ ...current, category: event.target.value }))}><option value="ingredient">Ingrediente</option><option value="beverage">Bebida</option><option value="packaging">Embalagem</option><option value="material">Material</option></select></div>
             <div className="budget-field"><label htmlFor="new-item-unit">Unidade de compra</label><select id="new-item-unit" value={newItem.unit} onChange={(event) => setNewItem((current) => ({ ...current, unit: event.target.value }))}><option value="g">Gramas (g)</option><option value="ml">Mililitros (ml)</option><option value="un">Unidade (un)</option></select></div>
             <div className="budget-field"><label htmlFor="new-item-price">Preço pago (R$)</label><input id="new-item-price" required type="number" min="0" step="0.000001" value={newItem.price} onChange={(event) => setNewItem((current) => ({ ...current, price: event.target.value }))} /></div>
             <div className="budget-field"><label htmlFor="new-item-size">Quantidade da embalagem ({newItem.unit})</label><input id="new-item-size" required type="number" min="0.000001" step="any" value={newItem.packageSize} onChange={(event) => setNewItem((current) => ({ ...current, packageSize: event.target.value }))} /></div>
-            {newItem.type === 'food' ? <div className="budget-field"><label htmlFor="new-item-yield">Rendimento após preparo (%)</label><input id="new-item-yield" required type="number" min="0.000001" max="100" step="any" value={newItem.yieldPercent} onChange={(event) => setNewItem((current) => ({ ...current, yieldPercent: event.target.value }))} /></div> : <div className="budget-field"><label htmlFor="new-item-amount">Quantidade por pedido (un)</label><input id="new-item-amount" required type="number" min="0" step="any" value={newItem.amount} onChange={(event) => setNewItem((current) => ({ ...current, amount: event.target.value }))} /></div>}
+            {!['packaging', 'material'].includes(newItem.category) ? <div className="budget-field"><label htmlFor="new-item-yield">Rendimento após preparo (%)</label><input id="new-item-yield" required type="number" min="0.000001" max="100" step="any" value={newItem.yieldPercent} onChange={(event) => setNewItem((current) => ({ ...current, yieldPercent: event.target.value }))} /></div> : <div className="budget-field"><label htmlFor="new-item-amount">Quantidade por pedido (un)</label><input id="new-item-amount" required type="number" min="0" step="any" value={newItem.amount} onChange={(event) => setNewItem((current) => ({ ...current, amount: event.target.value }))} /></div>}
           </div>
           <button type="submit" className="budget-button primary" disabled={disabled || !newItem.name.trim()}>Adicionar item</button>
         </form>
