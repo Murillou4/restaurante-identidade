@@ -1,6 +1,6 @@
 export const budgetTabs = [
   { id: 'simular', name: 'Simular preço' },
-  { id: 'custos', name: 'Preços de compra' },
+  { id: 'custos', name: 'Cadastro de preços' },
   { id: 'receitas', name: 'Recheios e sabores' },
   { id: 'operacao', name: 'Despesas e meta' },
 ];
