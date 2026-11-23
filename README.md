@@ -50,7 +50,7 @@ O código do backend é mantido no projeto de hospedagem separado `shared-backen
 
 `budgetCatalog.js` mantém preços iniciais com fonte/data e as composições de recheio. `budgetMath.js` calcula custo, margem, resultado e ponto de equilíbrio; três recheios dividem o mesmo peso total. `useSharedBudget.js` mantém os valores confirmados separados das edições ainda não salvas.
 
-Em **Preços de compra**, a compra é informada diretamente por kg, litro ou unidade. A leitura converte as referências e os cadernos antigos sem alterar seus custos; uma edição explícita salva preço e base de conversão juntos. Os dados das embalagens originais da pesquisa ficam em uma seção recolhida.
+Em **Cadastro de preços**, cada item permite editar o preço pago e a quantidade da embalagem; o custo por kg, litro ou unidade é convertido automaticamente. Também é possível cadastrar ingredientes, bebidas, embalagens e materiais, editar nome/categoria/unidade e remover itens personalizados. Ingredientes novos podem entrar nas proporções das receitas; embalagens e materiais podem entrar no custo por pedido. As alterações atualizam a simulação e usam o mesmo salvamento do orçamento compartilhado. Os dados originais da pesquisa ficam como referência.
 
 A operação está definida como venda direta por encomenda, com retirada no local. Em **Despesas e meta**, a taxa média de pagamento pode ser informada conforme a tarifa real da maquininha ou do meio usado. Não há comissão de plataforma, mensalidade de aplicativo, subsídio de entrega ou frete ao cliente na simulação. O volume mensal fica na mesma área, junto dos custos por batata, custos fixos, perdas, impostos e margem. A taxa e os demais ajustes são salvos no orçamento compartilhado.
 
