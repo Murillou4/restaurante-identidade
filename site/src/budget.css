@@ -228,3 +228,21 @@
 @media (prefers-reduced-motion: reduce) {
   .budget-button, .budget-tabs button { transition: none; }
 }
+
+
+/* Cadastro editável de produtos e insumos */
+.budget-add-item { margin-top: 32px; padding: 22px; border: 1px solid #d8cec0; background: #fbf8f1; border-radius: 5px; }
+.budget-add-item .budget-section-heading { margin-bottom: 18px; }
+.budget-add-grid, .budget-custom-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+.budget-custom-meta { margin-bottom: 18px; }
+.budget-custom-meta .budget-field input, .budget-add-grid .budget-field input { border: 1px solid #d0c4b3; background: #fffdf8; border-radius: 4px; }
+.budget-custom-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.budget-custom-ingredient { background: rgba(238, 231, 219, .35); padding-inline: 16px; }
+.budget-custom-ingredient .budget-custom-meta { margin-top: 8px; }
+@media (max-width: 767px) {
+  .budget-add-item { padding: 16px; }
+  .budget-add-grid, .budget-custom-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; }
+}
+@media (max-width: 359px) {
+  .budget-add-grid, .budget-custom-meta { grid-template-columns: 1fr; }
+}
