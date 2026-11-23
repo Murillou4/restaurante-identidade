@@ -1,6 +1,6 @@
 # Orçamento da batata recheada
 
-**Atualizado em 06/10/2026. Uso interno de mãe e filho.** O caderno permite comparar porções, ingredientes e preços para planejar o delivery em Senador Canedo/GO. As receitas e os custos iniciais são hipóteses editáveis; precisam de teste de cozinha e conferência das compras antes de aprovar cardápio e preço.
+**Atualizado em 23/11/2026. Uso interno de mãe e filho.** O caderno permite comparar porções, ingredientes e preços para planejar a produção caseira por encomenda, com retirada no local em Senador Canedo/GO. As receitas e os custos iniciais são hipóteses editáveis; precisam de teste de cozinha e conferência das compras antes de aprovar cardápio e preço.
 
 A referência de implementação é o [catálogo](../site/src/budgetCatalog.js), com os cálculos em [budgetMath.js](../site/src/budgetMath.js). As fontes públicas e seus limites estão em [PRECOS-REFERENCIA.md](PRECOS-REFERENCIA.md), com pesquisa de **06/10/2026**.
 
@@ -9,7 +9,7 @@ A referência de implementação é o [catálogo](../site/src/budgetCatalog.js),
 1. Abrir o mesmo link completo do caderno nos dois aparelhos. A Visão geral explica o projeto e oferece **Testar uma batata**. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
 2. Em **Simular preço**, comparar uma composição: queijo e de um a três recheios. Os campos mostram o custo dos ingredientes da quantidade escolhida; os recheios selecionados mostram peso e custo. Abrir o bloco de quantidades para comprar para conferir cada ingrediente.
 3. Em **Preços de compra**, informar diretamente o **Preço por kg** dos ingredientes, **Preço por litro** dos líquidos e **Preço por unidade** das embalagens. Batata a R$ 5,99/kg: digitar somente 5,99. O peso usado na porção vem de Simular preço; não é necessário cadastrar peso de pacote. Ajustar o rendimento aqui e a composição em **Recheios e sabores** com os testes reais.
-4. Informar o preço que pretendem praticar em **Simular preço** e o volume mensal em **Despesas e meta**. Escolher o canal no seletor **Canal para simular** e comparar as taxas em **Vendas e entrega**; abrir **Ajustar condições** para editar taxas e entrega. Custos fixos, custos por batata, perdas, impostos e margem ficam em Despesas e meta.
+4. Informar o preço que pretendem praticar em **Simular preço** e o volume mensal em **Despesas e meta**. Na mesma área, registrar os impostos e a taxa efetiva da maquininha ou do meio de pagamento, quando houver. Custos fixos, custos por batata, perdas e margem também ficam em Despesas e meta.
 5. Salvar e aguardar a confirmação **“Orçamento salvo para vocês dois.”** No outro aparelho, conferir a mesma composição e os valores confirmados.
 
 As edições recalculam a simulação na aba atual; tornam-se compartilhadas depois da resposta do servidor. Em uma falha de salvamento, as edições continuam na aba e podem ser reenviadas. Se outro aparelho salvar primeiro, o caderno carrega os valores novos e preserva o rascunho para revisão antes de salvar novamente.
@@ -18,17 +18,11 @@ Os cadernos anteriores continuam com o mesmo custo: preços de embalagens pesqui
 
 O seletor **Eu (filho) / Mãe** fica somente em Marca e identifica quem marca os favoritos de nome e logo. Trocar de ferramenta ou área preserva as edições locais, incluindo campos que precisam de correção. Favoritos continuam sendo preferências; receitas e preços salvos continuam sendo simulações, sem aprovação automática.
 
-## Venda direta e planos do iFood
+## Forma de venda e retirada
 
-A pesquisa oficial de 06/10/2026 está em [IFOOD.md](IFOOD.md). Referências iniciais: Básico com comissão de 12%, pagamento online de 3,2% e mensalidade de R$ 110; Entrega com comissão de 23%, pagamento online de 3,2% e mensalidade de R$ 150. A mensalidade é aplicada somente acima de R$ 1.800 de faturamento mensal no canal, com opção de simular a carência do primeiro mês. Todos esses parâmetros são editáveis.
+A produção acontece em casa e as batatas são preparadas por encomenda. O cliente combina o pedido e retira no local, em Senador Canedo/GO. O orçamento não considera entrega ao cliente, comissão de plataforma, mensalidades de aplicativo, cupons ou subsídios.
 
-Cada comparação usa a mesma composição, preço testado e volume mensal, supondo todas as vendas naquele canal. Não somar os três resultados mensais. A participação online é uma porcentagem do faturamento; a taxa online efetiva é `taxa de pagamento × participação / 100`. No iFood, as taxas substituem o campo de taxas da venda direta; os impostos continuam aplicados separadamente. Os valores anteriores do caderno permanecem guardados.
-
-Direto e Básico usam o custo líquido de entrega própria pago pelo negócio. Entrega iFood usa o subsídio de frete do plano, sem somar a entrega própria. Promoções em reais por batata e taxas percentuais adicionais são opcionais e começam em zero. A antecipação precisa de uma taxa confirmada na oferta da loja, e a cobertura do Plano Entrega deve ser conferida no endereço de produção.
-
-O faturamento simplificado é `preço da batata × batatas por mês`. As taxas usam o preço da batata, sem bebidas ou frete cobrado do cliente; a base contratual do frete próprio não foi confirmada nas fontes públicas. Conferir contrato e extrato antes de usar a simulação para prever o repasse real.
-
-No iFood, o preço sugerido considera a mensalidade que seria devida no faturamento do próprio preço recomendado. Os candidatos são arredondados para cima ao centavo para preservar a margem desejada. O custo completo e o resultado no preço testado usam a mensalidade daquele cenário, que pode ser diferente da usada na sugestão. O ponto de equilíbrio também avalia a cobrança conforme o volume necessário, com aviso se a mensalidade provocar uma nova queda no resultado após o limite.
+A taxa de pagamento é um percentual opcional em **Despesas e meta**. Preencha somente a tarifa efetivamente cobrada pela maquininha ou pelo meio de pagamento usado. Pix e dinheiro podem ficar em 0% quando não houver cobrança. Impostos continuam sendo informados separadamente.
 
 O frontend se conecta a uma API em um **backend separado**, com o orçamento associado ao mesmo identificador de caderno do link. Quem tem esse link pode acessar e editar o caderno. O salvamento de um orçamento registra uma simulação de planejamento; a aprovação da receita e do preço deve ser combinada pelos dois.
 
@@ -92,17 +86,16 @@ A **reserva adicional de 5%** incide sobre o custo total dos ingredientes. Ela �
 | Embalagem adicional | R$ 0,00 | Campo para despesas extras; não repetir os itens já contados |
 | Energia por porção | R$ 0,80 | Hipótese; não é tarifa ou medição de consumo |
 | Mão de obra por porção | R$ 2,00 | Hipótese de remuneração; não é salário apurado |
-| Subsídio de entrega por porção | R$ 0,00 | Hipótese; incluir o que o negócio assumir da entrega |
 | Custos fixos mensais | R$ 300,00 | Hipótese de planejamento |
 | Volume mensal | 200 porções | Cenário, sem demanda confirmada |
 | Impostos sobre a venda | 0% | Campo ainda a preencher com a operação real |
-| Taxas sobre a venda | 0% | Campo ainda a preencher conforme canal/pagamento |
+| Taxa média de pagamento | 0% | Informar a tarifa efetiva da maquininha ou do meio de pagamento |
 | Margem desejada | 25% da receita | Meta inicial para comparar preços |
 | Preço escolhido | R$ 25,00 | Valor de simulação; preço de venda ainda a aprovar |
 
-O conjunto de embalagem precisa de teste físico: a bandeja pesquisada tem 1.100 ml, mas só **4 cm de altura**. Conferir tampa, acomodação no saco, vazamentos e transporte com a porção completa. Os preços de embalagem não incluem frete nem adesivo.
+O conjunto de embalagem precisa de teste físico: a bandeja pesquisada tem 1.100 ml, mas só **4 cm de altura**. Conferir tampa, acomodação na sacola, apresentação e facilidade para o cliente levar o pedido. Os preços de embalagem não incluem frete nem adesivo.
 
-Energia, mão de obra, fixos, volume, reserva, taxas, margem e preço escolhido **não são cotações de fornecedores**. Os zeros de impostos e taxas significam que ainda não foram informados; não comprovam isenção ou ausência de cobrança. Evitar contar remuneração, energia ou entrega tanto por porção quanto nos custos fixos.
+Energia, mão de obra, fixos, volume, reserva, taxas, margem e preço escolhido **não são cotações de fornecedores**. Os zeros de impostos e taxas significam que ainda não foram informados; não comprovam isenção ou ausência de cobrança. Evitar contar remuneração ou energia tanto por porção quanto nos custos fixos.
 
 ## Como o preço e o resultado são calculados
 
@@ -110,7 +103,7 @@ Definições: `I` é o custo dos ingredientes com rendimento ajustado; `V` é o 
 
 ```text
 reserva = I × 0,05
-V = I + reserva + embalagem + energia + mão de obra + subsídio de entrega
+V = I + reserva + embalagem + energia + mão de obra
 fixos por porção = F / N
 C = V + F / N
 
@@ -160,7 +153,7 @@ A projeção mensal atual repete **uma composição** pelo volume informado. Nã
 2. Ajustar os cremes pela textura e pelo sabor; pesar a porção servida e repetir o custo.
 3. Conferir batata grande, queijo culinário, milho drenado, cheddar, sal e cheiro-verde; substituir hipóteses pelas compras reais.
 4. Testar a embalagem completa e atualizar seu custo com frete e acessórios necessários.
-5. Informar mão de obra, consumo, fixos, taxas, impostos, entrega e volume realista sem duplicações.
+5. Informar mão de obra, consumo, fixos, taxas, impostos e volume realista sem duplicações.
 6. Comparar o resultado por composição e combinar o cardápio e o preço entre os dois.
 
 Para futuras atualizações, manter preços, pesos, rendimentos e receitas coerentes entre [budgetCatalog.js](../site/src/budgetCatalog.js), [PRECOS-REFERENCIA.md](PRECOS-REFERENCIA.md) e este documento. Alterações online no caderno são valores salvos daquele caderno; não modificam automaticamente estes arquivos de referência do projeto.
