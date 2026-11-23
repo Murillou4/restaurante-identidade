@@ -114,7 +114,7 @@ function IngredientRow({ item, values, fieldProps, hidden }) {
     <div className="budget-ingredient-inputs">
       <NumberField {...fieldProps} path={`ingredients.${item.id}.price`} label="Preço pago" value={data.price} unit="R$" context={item.name} max={10000000} />
       <NumberField {...fieldProps} path={`ingredients.${item.id}.packageSize`} label="Quantidade comprada" value={data.packageSize} unit={unitName} positive max={100000000} context={item.name} />
-      {packaging ? <NumberField {...fieldProps} path={`ingredients.${item.id}.amount`} label="Por pedido" value={data.amount} unit="un" context={item.name} /> : item.id !== 'batata' && <NumberField {...fieldProps} path={`ingredients.${item.id}.yieldPercent`} label="Rendimento após preparo" value={data.yieldPercent} unit="%" positive max={100} context={item.name} help="Quanto sobra depois de limpar ou preparar: 100% significa usar tudo." />}
+      {packaging ? <NumberField {...fieldProps} path={`ingredients.${item.id}.amount`} label="Quantidade por pedido" value={data.amount} unit={unitName} context={item.name} /> : item.id !== 'batata' && <NumberField {...fieldProps} path={`ingredients.${item.id}.yieldPercent`} label="Rendimento após preparo" value={data.yieldPercent} unit="%" positive max={100} context={item.name} help="Quanto sobra depois de limpar ou preparar: 100% significa usar tudo." />}
     </div>
     <p className="budget-unit-price">Custo calculado: {money(data.unitPrice)} / {baseUnit}{!packaging && data.yieldPercent !== 100 ? ` · após preparo: ${money(data.unitPrice / (data.yieldPercent / 100))} / ${baseUnit}` : ''}.</p>
     <details className="budget-price-reference"><summary>Referência da pesquisa</summary>
@@ -128,8 +128,8 @@ function IngredientRow({ item, values, fieldProps, hidden }) {
 
 function CustomIngredientRow({ item, values, fieldProps, onMetadataChange, onRemove, hidden }) {
   const data = ingredientValues(item, values);
-  const unitName = item.unit === 'g' ? 'g' : item.unit === 'ml' ? 'ml' : 'un';
-  const baseUnit = item.unit === 'g' ? 'kg' : item.unit === 'ml' ? 'L' : 'un';
+  const unitName = item.unit;
+  const baseUnit = item.unit === 'g' || item.unit === 'kg' ? 'kg' : item.unit === 'ml' || item.unit === 'l' ? 'L' : 'un';
   const [name, setName] = useState(item.name);
   useEffect(() => setName(item.name), [item.name]);
   const updateName = () => {
