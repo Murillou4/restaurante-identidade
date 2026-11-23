@@ -9,7 +9,6 @@ export const DEFAULT_BUDGET_SETTINGS = Object.freeze({
   energyPerUnit: 0.8,
   packagingPerUnit: 1.8,
   laborPerUnit: 2,
-  deliverySubsidy: 0,
   fixedMonthly: 300,
   unitsMonthly: 200,
   taxPercent: 0,
@@ -144,7 +143,7 @@ export function calculateBudget(input = {}) {
   const lossCost = ingredientCost !== null && settings.lossPercent !== null
     ? finiteResult(ingredientCost * (settings.lossPercent / 100), 'lossCost')
     : null;
-  const extras = ['energyPerUnit', 'packagingPerUnit', 'laborPerUnit', 'deliverySubsidy'];
+  const extras = ['energyPerUnit', 'packagingPerUnit', 'laborPerUnit'];
   const variableCost = ingredientCost !== null && lossCost !== null && extras.every((field) => settings[field] !== null)
     ? finiteResult(ingredientCost + lossCost + extras.reduce((total, field) => total + settings[field], 0), 'variableCost')
     : null;
