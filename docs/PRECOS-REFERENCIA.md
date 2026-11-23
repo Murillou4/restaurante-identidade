@@ -24,7 +24,7 @@ Os valores normalizados abaixo são exibidos com até quatro casas decimais. O s
 | [Embalagens JK](https://www.embalagensjk.com.br/) | Av. Anhanguera nº 9247, Setor Campinas, Goiânia–GO | Frete, retirada e ajuste físico da embalagem ainda precisam ser conferidos |
 | [Potência Embalagens — Quem somos](https://www.potenciaembalagens.com.br/quem-somos) | A loja declara sua origem em Goiânia | Confirmar prazo e variante do produto antes da compra |
 
-O restaurante será um delivery em Senador Canedo/GO. Estas são referências de compra na região de Goiânia; a pesquisa não confirma entrega das lojas até o local de produção.
+As batatas serão produzidas em casa, por encomenda, e retiradas pelos clientes em Senador Canedo/GO. Estas são referências de compra na região de Goiânia; a pesquisa não confirma frete ou retirada das lojas até o local de produção.
 
 ## Ingredientes do catálogo
 
@@ -74,7 +74,7 @@ O champignon já usa peso drenado no pacote; não aplicar novamente a perda da s
 | Item | Apresentação pesquisada | Preço do pacote | R$/un | Quantidade por porção | Fonte exata / limite |
 | --- | --- | ---: | ---: | ---: | --- |
 | Bandeja de alumínio 4P com tampa | 1.100 ml; 21,5 × 17 × 4 cm; caixa de 100 un; tampa de papel aluminizado | R$ 99,99 | R$ 0,9999 | 1 | [JK](https://www.embalagensjk.com.br/produto/bandeja-de-aluminio-4p-m170-215x170x40-100x1). Testar fechamento com a batata recheada; altura de apenas 4 cm |
-| Saco de papel delivery 25 kg | 31 × 37 × 18 cm; pacote de 100 un | R$ 80,50 | R$ 0,8050 | 1 | [JK](https://www.embalagensjk.com.br/produto/saco-papel-p-delivery-25kg). Testar o conjunto; não pressupor que o nome “25 kg” seja o peso da porção |
+| Saco de papel para retirada (anúncio do fornecedor: “delivery 25 kg”) | 31 × 37 × 18 cm; pacote de 100 un | R$ 80,50 | R$ 0,8050 | 1 | [JK](https://www.embalagensjk.com.br/produto/saco-papel-p-delivery-25kg). Testar o conjunto; não pressupor que o nome “25 kg” seja o peso da porção |
 | Garfo descartável Linha Prática | Caixa de 1.000 un | R$ 60,00 | R$ 0,0600 | 1 | [Potência](https://www.potenciaembalagens.com.br/descartaveis/garfo-refeicao-linha-pratica-leve). Confirmar variante na compra |
 | Guardanapo Florax | 30 × 30 cm; pacote de 50 un | R$ 2,80 | R$ 0,0560 | 2 | [JK](https://www.embalagensjk.com.br/produto/guardanapo-30x30-50x1) |
 
