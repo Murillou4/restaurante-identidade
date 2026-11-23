@@ -52,7 +52,7 @@ export function readCustomIngredients(values = {}) {
     ['food', 'packaging'].includes(item.type) &&
     ['g', 'ml', 'un'].includes(item.unit) &&
     item.custom === true
-  ).map((item) => ({ ...item, name: item.name.trim() }));
+  ).map((item) => ({ ...item, category: ['ingredient', 'beverage', 'packaging', 'material'].includes(item.category) ? item.category : (item.type === 'packaging' ? 'packaging' : 'ingredient'), name: item.name.trim() }));
 }
 
 export function serializeCustomIngredients(items) {
@@ -60,7 +60,7 @@ export function serializeCustomIngredients(items) {
     item && typeof item.id === 'string' && /^custom-[a-f0-9-]{8,64}$/i.test(item.id) &&
     typeof item.name === 'string' && item.name.trim() &&
     ['food', 'packaging'].includes(item.type) && ['g', 'ml', 'un'].includes(item.unit)
-  ).map((item) => ({ ...item, name: item.name.trim(), custom: true })));
+  ).map((item) => ({ ...item, category: ['ingredient', 'beverage', 'packaging', 'material'].includes(item.category) ? item.category : (item.type === 'packaging' ? 'packaging' : 'ingredient'), name: item.name.trim(), custom: true })));
 }
 
 export const cheeses = [{ id: 'mucarela', name: 'Muçarela' }, { id: 'cheddar', name: 'Cheddar' }, { id: 'requeijao', name: 'Requeijão' }, { id: 'misto', name: 'Muçarela + cheddar' }, { id: 'nenhum', name: 'Sem queijo' }];
