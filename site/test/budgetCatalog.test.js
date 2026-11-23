@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultFields, estimate, getIngredientPriceEdit, ingredientValues, ingredients, presets } from '../src/budgetCatalog.js';
+import { defaultFields, estimate, getIngredientPriceEdit, ingredientValues, ingredients, presets, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD } from '../src/budgetCatalog.js';
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
 test('cesta usa peso cru comprado da batata e não aumenta compra por perda do forno', () => {
@@ -231,4 +231,61 @@ test('edição só aceita ingredientes e unidades do catálogo, sem criar caminh
   assert.deepEqual(Object.keys(getIngredientPriceEdit(potato, 5.99)), ['ingredients.batata.price', 'ingredients.batata.packageSize']);
   assert.deepEqual(potato, before);
   assert.equal({}.polluted, undefined);
+});
+
+
+test('preço de compra e quantidade da embalagem são editáveis sem alterar o catálogo base', () => {
+  const item = ingredients.find((entry) => entry.id === 'batata');
+  const values = { ...defaultFields, 'ingredients.batata.price': 25, 'ingredients.batata.packageSize': 5000 };
+  close(ingredientValues(item, values).unitPrice, 5);
+  close(estimate(values).costs.base.batata, 2.25);
+  assert.equal(item.price, 1.15);
+  assert.equal(item.packageSize, 160);
+});
+
+test('itens personalizados são validados, salvos e entram no custo das receitas', () => {
+  const id = 'custom-12345678-abcd';
+  const item = { id, name: 'Catupiry', type: 'food', unit: 'g', custom: true, status: 'estimate', yieldPercent: 100, amount: 1 };
+  const serialized = serializeCustomIngredients([item]);
+  const parsed = readCustomIngredients({ [CUSTOM_CATALOG_FIELD]: serialized });
+  assert.deepEqual(parsed, [item]);
+  const values = {
+    ...defaultFields,
+    [CUSTOM_CATALOG_FIELD]: serialized,
+    [`ingredients.${id}.price`]: 25,
+    [`ingredients.${id}.packageSize`]: 5000,
+    [`ingredients.${id}.yieldPercent`]: 100,
+    [`recipes.frango.${id}`]: 10,
+  };
+  const result = estimate(values);
+  assert.equal(result.valid, true);
+  const customRow = result.rows.find((row) => row.id === id);
+  assert.ok(customRow);
+  close(customRow.unitPrice, 5);
+  close(customRow.cost, customRow.quantity / 1000 * 5);
+  assert.ok(result.costs.fillings[0].cost > 0);
+});
+
+test('itens personalizados de embalagem entram no custo por pedido e aceitam categoria/unidade', () => {
+  const id = 'custom-87654321-abcd';
+  const item = { id, name: 'Copo', type: 'packaging', unit: 'un', custom: true, status: 'estimate', yieldPercent: 100, amount: 2 };
+  const values = {
+    ...defaultFields,
+    [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients([item]),
+    [`ingredients.${id}.price`]: 20,
+    [`ingredients.${id}.packageSize`]: 50,
+    [`ingredients.${id}.amount`]: 2,
+  };
+  const result = estimate(values);
+  const cup = result.packaging.find((row) => row.id === id);
+  assert.ok(cup);
+  assert.equal(cup.amount, 2);
+  close(cup.unitPrice, 0.4);
+  close(result.packagingCost, 1.9769 + 0.8);
+});
+
+test('cadastro personalizado ignora conteúdo inválido e serializa apenas itens aceitos', () => {
+  assert.deepEqual(readCustomIngredients({ [CUSTOM_CATALOG_FIELD]: 'invalid json' }), []);
+  assert.deepEqual(readCustomIngredients({ [CUSTOM_CATALOG_FIELD]: JSON.stringify([{ id: 'bad', name: 'X', type: 'food', unit: 'g' }]) }), []);
+  assert.equal(serializeCustomIngredients([{ id: 'constructor', name: 'Pollution', type: 'food', unit: 'g' }]), '[]');
 });
