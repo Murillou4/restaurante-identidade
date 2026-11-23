@@ -245,7 +245,7 @@ test('preço de compra e quantidade da embalagem são editáveis sem alterar o c
 
 test('itens personalizados são validados, salvos e entram no custo das receitas', () => {
   const id = 'custom-12345678-abcd';
-  const item = { id, name: 'Catupiry', type: 'food', unit: 'g', custom: true, status: 'estimate', yieldPercent: 100, amount: 1 };
+  const item = { id, name: 'Catupiry', type: 'food', category: 'ingredient', unit: 'g', custom: true, status: 'estimate', yieldPercent: 100, amount: 1 };
   const serialized = serializeCustomIngredients([item]);
   const parsed = readCustomIngredients({ [CUSTOM_CATALOG_FIELD]: serialized });
   assert.deepEqual(parsed, [item]);
@@ -268,7 +268,7 @@ test('itens personalizados são validados, salvos e entram no custo das receitas
 
 test('itens personalizados de embalagem entram no custo por pedido e aceitam categoria/unidade', () => {
   const id = 'custom-87654321-abcd';
-  const item = { id, name: 'Copo', type: 'packaging', unit: 'un', custom: true, status: 'estimate', yieldPercent: 100, amount: 2 };
+  const item = { id, name: 'Copo', type: 'packaging', category: 'packaging', unit: 'un', custom: true, status: 'estimate', yieldPercent: 100, amount: 2 };
   const values = {
     ...defaultFields,
     [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients([item]),
