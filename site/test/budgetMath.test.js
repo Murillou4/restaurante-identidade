@@ -4,7 +4,7 @@ import { calculateBudget, distributeFillings } from '../src/budgetMath.js';
 
 const zeroExtras = {
   lossPercent: 0, energyPerUnit: 0, packagingPerUnit: 0, laborPerUnit: 0,
-  deliverySubsidy: 0, fixedMonthly: 0, unitsMonthly: 100,
+  fixedMonthly: 0, unitsMonthly: 100,
   taxPercent: 0, feePercent: 0, targetMarginPercent: 0, chosenPrice: 20,
 };
 const oneRealRow = { id: 'base', name: 'Insumo', quantity: 100, unitPrice: 10, unit: 'g' };
@@ -22,26 +22,26 @@ test('manual scenario: ingredients, reserve, extras, taxes and fixed costs are c
     ],
     settings: {
       lossPercent: 10, energyPerUnit: 1, packagingPerUnit: 2, laborPerUnit: 3,
-      deliverySubsidy: 1, fixedMonthly: 100, unitsMonthly: 100,
+      fixedMonthly: 100, unitsMonthly: 100,
       taxPercent: 5, feePercent: 5, targetMarginPercent: 20, chosenPrice: 30,
     },
   });
   assert.equal(result.valid, true);
   near(result.ingredientCost, 7);
   near(result.lossCost, 0.7);
-  near(result.variableCost, 14.7);
+  near(result.variableCost, 13.7);
   near(result.fixedCostPerUnit, 1);
-  near(result.fullCost, 15.7);
+  near(result.fullCost, 14.7);
   near(result.percentRate, 0.1);
-  near(result.suggestedPrice, 15.7 / 0.7);
+  near(result.suggestedPrice, 14.7 / 0.7);
   near(result.taxCost, 1.5);
   near(result.feeCost, 1.5);
   near(result.totalPercentCost, 3);
-  near(result.contribution, 12.3);
-  near(result.contributionMarginPercent, 41);
-  near(result.netUnit, 11.3);
-  near(result.netMonthly, 1130);
-  assert.equal(result.breakEvenUnits, 9);
+  near(result.contribution, 13.3);
+  near(result.contributionMarginPercent, 13.3 / 30 * 100);
+  near(result.netUnit, 12.3);
+  near(result.netMonthly, 1230);
+  assert.equal(result.breakEvenUnits, 8);
 });
 
 test('yield adjusts net quantity once, with kg, liter and unit prices converted correctly', () => {
