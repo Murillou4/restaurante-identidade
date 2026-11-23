@@ -181,7 +181,7 @@ export function estimate(values, selection) {
   }
   const rows = catalog.filter((item) => item.type === 'food' && quantities[item.id] !== 0 && quantities[item.id] !== undefined).map((item) => ({ id: item.id, name: item.name, unit: normalizeMeasureUnit(item.unit), quantity: quantities[item.id], ...ingredientValues(item, values) }));
   const packaging = catalog.filter((item) => item.type === 'packaging').map((item) => ({ id: item.id, name: item.name, ...ingredientValues(item, values) }));
-  const packagingCost = packaging.reduce((sum, item) => sum + item.unitPrice * item.amount, 0);
+  const packagingCost = packaging.reduce((sum, item) => sum + item.unitPrice * item.amount * (item.unit === 'g' || item.unit === 'ml' ? 0.001 : 1), 0);
   const result = calculateBudget({ rows, settings: { ...settings, packagingPerUnit: settings.packagingPerUnit + packagingCost } });
   const allAlerts = [...alerts, ...result.alerts];
   return { ...result, catalog, customIngredients, valid: result.valid && portions.valid && !alerts.some((item) => item.severity === 'error'), alerts: allAlerts, portions: portions.portions, packaging, packagingCost, settings, cheese, selectedFillings, costs };
