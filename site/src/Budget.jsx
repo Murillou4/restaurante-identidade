@@ -146,7 +146,7 @@ function CustomIngredientRow({ item, values, fieldProps, onMetadataChange, onRem
     <div className="budget-ingredient-inputs">
       <NumberField {...fieldProps} path={`ingredients.${item.id}.price`} label="Preço pago" value={data.price} unit="R$" context={item.name} max={10000000} />
       <NumberField {...fieldProps} path={`ingredients.${item.id}.packageSize`} label="Quantidade comprada" value={data.packageSize} unit={unitName} positive max={100000000} context={item.name} />
-      {item.type === 'packaging' ? <NumberField {...fieldProps} path={`ingredients.${item.id}.amount`} label="Por pedido" value={data.amount} unit="un" context={item.name} /> : <NumberField {...fieldProps} path={`ingredients.${item.id}.yieldPercent`} label="Rendimento após preparo" value={data.yieldPercent} unit="%" positive max={100} context={item.name} />}
+      {item.type === 'packaging' ? <NumberField {...fieldProps} path={`ingredients.${item.id}.amount`} label="Quantidade por pedido" value={data.amount} unit={unitName} context={item.name} /> : <NumberField {...fieldProps} path={`ingredients.${item.id}.yieldPercent`} label="Rendimento após preparo" value={data.yieldPercent} unit="%" positive max={100} context={item.name} />}
     </div>
     <p className="budget-unit-price">Custo calculado: {money(data.unitPrice)} / {baseUnit}{item.type === 'food' && data.yieldPercent !== 100 ? ` · após preparo: ${money(data.unitPrice / (data.yieldPercent / 100))} / ${baseUnit}` : ''}.</p>
     <div className="budget-custom-actions"><span className="budget-tag status-estimate">Cadastrado por vocês</span><button type="button" className="budget-button secondary" disabled={fieldProps.disabled} onClick={() => onRemove(item.id)}>Remover item</button></div>
@@ -289,6 +289,12 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
       if (Number.isFinite(currentSize)) changes[packagePath] = currentSize * factors[current.unit] / factors[patch.unit];
     }
     const next = customIngredients.map((item) => item.id === id ? { ...item, ...patch } : item);
+    if (patch.type === 'food') {
+      for (const filling of fillings) {
+        const recipePath = 'recipes.' + filling.id + '.' + id;
+        if (!Object.hasOwn(values, recipePath)) changes[recipePath] = 0;
+      }
+    }
     changes[CUSTOM_CATALOG_FIELD] = serializeCustomIngredients(next);
     sharedBudget.editMany(changes);
   };
@@ -390,7 +396,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
             <div className="budget-field"><label htmlFor="new-item-unit">Unidade de compra</label><select id="new-item-unit" value={newItem.unit} onChange={(event) => { const unit = event.target.value; setNewItem((current) => ({ ...current, unit, packageSize: ['kg', 'l', 'un'].includes(unit) ? '1' : '1000' })); }}><option value="g">Gramas (g)</option><option value="kg">Quilogramas (kg)</option><option value="ml">Mililitros (ml)</option><option value="l">Litros (L)</option><option value="un">Unidade (un)</option></select></div>
             <div className="budget-field"><label htmlFor="new-item-price">Preço pago (R$)</label><input id="new-item-price" required type="number" min="0" step="0.000001" value={newItem.price} onChange={(event) => setNewItem((current) => ({ ...current, price: event.target.value }))} /></div>
             <div className="budget-field"><label htmlFor="new-item-size">Quantidade da embalagem ({newItem.unit})</label><input id="new-item-size" required type="number" min="0.000001" step="any" value={newItem.packageSize} onChange={(event) => setNewItem((current) => ({ ...current, packageSize: event.target.value }))} /></div>
-            {!['packaging', 'material'].includes(newItem.category) ? <div className="budget-field"><label htmlFor="new-item-yield">Rendimento após preparo (%)</label><input id="new-item-yield" required type="number" min="0.000001" max="100" step="any" value={newItem.yieldPercent} onChange={(event) => setNewItem((current) => ({ ...current, yieldPercent: event.target.value }))} /></div> : <div className="budget-field"><label htmlFor="new-item-amount">Quantidade por pedido (un)</label><input id="new-item-amount" required type="number" min="0" step="any" value={newItem.amount} onChange={(event) => setNewItem((current) => ({ ...current, amount: event.target.value }))} /></div>}
+            {!['packaging', 'material'].includes(newItem.category) ? <div className="budget-field"><label htmlFor="new-item-yield">Rendimento após preparo (%)</label><input id="new-item-yield" required type="number" min="0.000001" max="100" step="any" value={newItem.yieldPercent} onChange={(event) => setNewItem((current) => ({ ...current, yieldPercent: event.target.value }))} /></div> : <div className="budget-field"><label htmlFor="new-item-amount">Quantidade por pedido ({newItem.unit})</label><input id="new-item-amount" required type="number" min="0" step="any" value={newItem.amount} onChange={(event) => setNewItem((current) => ({ ...current, amount: event.target.value }))} /></div>}
           </div>
           <button type="submit" className="budget-button primary" disabled={disabled || !newItem.name.trim()}>Adicionar item</button>
         </form>
