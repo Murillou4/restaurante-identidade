@@ -12,8 +12,8 @@ Atualizado em **06/10/2026**. Documento de trabalho para vocês dois organizarem
 | Complementos no início | Bebidas | Confirmado |
 | Sobremesas | Possibilidade de expansão; fora do cardápio inicial | Ideia futura |
 | Produção | Em casa | Confirmado |
-| Atendimento | Apenas delivery | Confirmado |
-| Cidade de entrega | Senador Canedo, Goiás | Confirmado |
+| Atendimento | Por encomenda, com retirada no local | Confirmado |
+| Local de retirada | Senador Canedo, Goiás | Confirmado |
 | Responsáveis pelo projeto | Você e sua mãe | Confirmado |
 | Nome | Filho prefere Capricho de Casa; mãe prefere Caprichada | Favoritos registrados; decisão final em aberto |
 | Logo | Deve transmitir conforto e acolhimento | Preferência confirmada |
@@ -85,7 +85,7 @@ Estas são sugestões para discussão, não decisões nem nomes com disponibilid
 | **Símbolo acolhedor** | Uma batata aberta simplificada junto ao nome, com poucos traços | Parecer batata recheada e continuar legível pequeno |
 | **Mascote discreto** | Personagem simples, somente se os dois gostarem dessa linguagem | Ter desenho próprio e expressão simpática, com poucos detalhes |
 
-**Ponto de partida recomendado para avaliar:** letras como protagonista. Combina com a busca por acolhimento e permite usar o nome com clareza no delivery.
+**Ponto de partida recomendado para avaliar:** letras como protagonista. Combina com a busca por acolhimento e permite usar o nome com clareza no cardápio e nos canais próprios de pedido.
 
 ### Paleta para experimentar
 
@@ -107,7 +107,7 @@ Sugestão, ainda não escolhida: **creme, marrom e terracota**, com uma pequena 
 - Versão em uma cor e versões para fundo claro/escuro.
 - Arquivo vetorial editável e PNG com fundo transparente.
 - Cores e tipografias registradas.
-- Aplicações simples em adesivo de embalagem, cardápio digital e perfil do delivery.
+- Aplicações simples em adesivo de embalagem, cardápio digital e perfil nas redes sociais.
 
 ## 5. Referências reais de nome e logo
 
@@ -149,10 +149,10 @@ Os endereços originais das imagens e das páginas estão em [fontes.json](E:/De
 | Bebidas que serão vendidas | A definir |
 | Preços e combos | A definir |
 | Dias e horários de atendimento | A definir |
-| Bairros atendidos e taxa de entrega | A definir dentro de Senador Canedo |
+| Local, endereço e orientações de retirada | A definir dentro de Senador Canedo |
 | Embalagem | A definir conforme produto e transporte |
-| Canal de pedidos | A definir; WhatsApp, Instagram e plataformas são possibilidades |
-| Prazo de entrega | A definir |
+| Canal de contato para encomendas | A definir; WhatsApp e Instagram são possibilidades |
+| Prazo de preparo e horário de retirada | A definir |
 | Diferencial concreto | A definir com base na comida e no atendimento |
 
 ## 7. Registro de decisões
@@ -160,7 +160,7 @@ Os endereços originais das imagens e das páginas estão em [fontes.json](E:/De
 | Data | Decisão ou informação | Estado |
 | --- | --- | --- |
 | 05/10/2026 | Criar um documento para organizar o restaurante; priorizar nome e logo | Confirmado |
-| 05/10/2026 | Batata recheada + bebidas; produção em casa; apenas delivery em Senador Canedo/GO | Confirmado |
+| 05/10/2026 | Batata recheada + bebidas; produção caseira e retirada pelo cliente em Senador Canedo/GO | Confirmado |
 | 05/10/2026 | Sobremesas ficam como possibilidade futura | Confirmado |
 | 05/10/2026 | Buscar logo acolhedora e referências reais, sem imagens geradas por IA | Confirmado |
 | 05/10/2026 | Nomes, caminhos visuais e paleta deste documento | Sugestões para avaliação |
