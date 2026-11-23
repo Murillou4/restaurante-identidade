@@ -292,8 +292,8 @@ test('cadastro personalizado ignora conteúdo inválido e serializa apenas itens
 
 
 test('itens personalizados aceitam compra em kg e litro sem perder a unidade de cálculo', () => {
-  const kgId = 'custom-12345678-kg00';
-  const literId = 'custom-87654321-lt00';
+  const kgId = 'custom-12345678-abc0';
+  const literId = 'custom-87654321-def0';
   const items = [
     { id: kgId, name: 'Farinha', type: 'food', category: 'ingredient', unit: 'kg', custom: true, status: 'estimate', yieldPercent: 100, amount: 1 },
     { id: literId, name: 'Molho líquido', type: 'packaging', category: 'material', unit: 'l', custom: true, status: 'estimate', yieldPercent: 100, amount: 0.1 },
