@@ -15,10 +15,11 @@ test('links principais antigos continuam abrindo orçamento, marca e plano de ab
 });
 
 test('atalhos do orçamento podem ser compartilhados e reabertos na ferramenta correta', () => {
-  for (const tab of ['simular', 'custos', 'receitas', 'canais', 'operacao']) {
+  for (const tab of ['simular', 'custos', 'receitas', 'operacao']) {
     assert.equal(budgetHash(tab), `#orcamento-${tab}`);
     assert.deepEqual(readRoute(`#orcamento-${tab}`), { page: 'orcamento', tab });
   }
+  assert.deepEqual(readRoute('#orcamento-canais'), { page: 'orcamento', tab: 'operacao' });
   assert.deepEqual(readRoute('#orcamento-inexistente'), { page: 'inicio' });
 });
 
