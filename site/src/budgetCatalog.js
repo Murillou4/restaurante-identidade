@@ -31,7 +31,7 @@ export const ingredients = [
   ingredient('batata-palha', 'Batata palha', 'g', 110, 7.99, 'Hiper Moreira · Coimbra', `${moreira}batata-palha-moinho-fino-tradicional-110g`),
   ingredient('cheiro-verde', 'Cheiro-verde', 'g', 50, 3, 'A cotar', '', 'Preço e peso do maço são hipóteses; pesar antes de lançar o custo real.', 100, 'estimate'),
   ingredient('pote', 'Bandeja com tampa', 'un', 100, 99.99, 'JK Embalagens · Campinas', `${jk}bandeja-de-aluminio-4p-m170-215x170x40-100x1`, 'Alumínio 1.100 ml com tampa. Altura de 4 cm: testar fechamento com batata grande e recheios.', 100, 'reference', 'packaging'),
-  ingredient('saco', 'Saco delivery', 'un', 100, 80.5, 'JK Embalagens · Campinas', `${jk}saco-papel-p-delivery-25kg`, '31 × 37 × 18 cm. Testar conjunto; frete não incluído.', 100, 'reference', 'packaging'),
+  ingredient('saco', 'Saco para retirada', 'un', 100, 80.5, 'JK Embalagens · Campinas', `${jk}saco-papel-p-delivery-25kg`, '31 × 37 × 18 cm. Testar o conjunto com a bandeja; frete de compra não incluído.', 100, 'reference', 'packaging'),
   ingredient('talher', 'Garfo descartável', 'un', 1000, 60, 'Potência · Goiânia', 'https://www.potenciaembalagens.com.br/descartaveis/garfo-refeicao-linha-pratica-leve', '', 100, 'reference', 'packaging'),
   ingredient('guardanapo', 'Guardanapo', 'un', 50, 2.8, 'JK Embalagens · Campinas', `${jk}guardanapo-30x30-50x1`, 'Florax 30 × 30 cm. Dois por pedido na simulação.', 100, 'reference', 'packaging', 2),
 ];
