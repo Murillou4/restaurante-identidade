@@ -2,7 +2,6 @@ export const budgetTabs = [
   { id: 'simular', name: 'Simular preço' },
   { id: 'custos', name: 'Preços de compra' },
   { id: 'receitas', name: 'Recheios e sabores' },
-  { id: 'canais', name: 'Vendas e entrega' },
   { id: 'operacao', name: 'Despesas e meta' },
 ];
 
@@ -18,6 +17,7 @@ const galleryAnchors = {
 export function readRoute(hash = '') {
   const value = hash.replace(/^#/, '');
   if (value === 'orcamento') return { page: 'orcamento', tab: 'simular' };
+  if (value === 'orcamento-canais') return { page: 'orcamento', tab: 'operacao' };
   const tab = budgetTabs.find((item) => value === `orcamento-${item.id}`);
   if (tab) return { page: 'orcamento', tab: tab.id };
   if (value === 'galeria' || value === 'planejamento') return { page: value };
