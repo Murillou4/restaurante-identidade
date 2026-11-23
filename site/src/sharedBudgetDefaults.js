@@ -1,5 +1,4 @@
-import { defaultFields as budgetFields } from './budgetCatalog.js';
-import { defaultChannelFields } from './salesChannels.js';
+import { defaultFields } from './budgetCatalog.js';
 
-// A stable object keeps the shared-budget hook independent of render cycles.
-export const defaultFields = { ...budgetFields, ...defaultChannelFields };
+// Stable defaults keep the shared-budget hook independent of render cycles.
+export { defaultFields };
