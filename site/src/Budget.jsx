@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ArrowClockwise, ArrowSquareOut, FloppyDisk, WarningCircle } from '@phosphor-icons/react';
-import { RESEARCH_DATE, ingredients, fillings, cheeses, presets, ingredientValues, getIngredientPriceEdit } from './budgetCatalog';
+import { RESEARCH_DATE, ingredients, fillings, cheeses, presets, ingredientValues, getIngredientPriceEdit, estimate } from './budgetCatalog';
 import { defaultFields } from './sharedBudgetDefaults';
-import { estimateChannel, salesChannels } from './salesChannels';
-import SalesChannels, { channelLabels, monthlyLabels } from './SalesChannelPanel';
 import { budgetTabs } from './navigation';
 import './budget.css';
 
@@ -20,6 +18,7 @@ const operationFields = [
   { id: 'unitsMonthly', label: 'Batatas por mês', unit: 'un', positive: true, integer: true, help: 'Volume previsto para distribuir os custos fixos.' },
   { id: 'lossPercent', label: 'Reserva adicional para perdas', unit: '%', max: 100, help: 'Somente perdas extras, além do rendimento de preparo.' },
   { id: 'taxPercent', label: 'Impostos sobre a venda', unit: '%', max: 100, help: 'Hipótese editável conforme a forma de operação.' },
+  { id: 'feePercent', label: 'Taxa média de pagamento', unit: '%', max: 100, help: 'Informe a taxa da maquininha ou do meio de pagamento. Use 0% quando não houver tarifa, como no Pix ou dinheiro sem cobrança.' },
   { id: 'targetMarginPercent', label: 'Margem desejada sobre a venda', unit: '%', max: 100, help: 'Depois dos ingredientes, taxas e rateio dos fixos.' },
 ];
 
@@ -27,13 +26,11 @@ const settingLabels = {
   potatoGrams: 'Batata por porção', oilMl: 'Óleo por porção', saltGrams: 'Sal por porção',
   cheeseGrams: 'Quantidade total de queijo', fillingTotalGrams: 'Peso total dos recheios',
   palhaGrams: 'Batata palha', greensGrams: 'Cheiro-verde', chosenPrice: 'Preço para testar',
-  deliverySubsidy: 'Entrega própria paga pelo negócio', feePercent: 'Taxas da venda direta',
   ...Object.fromEntries(operationFields.map((field) => [field.id, field.label])),
 };
 function conflictLabel(path) {
   const [group, id, field] = path.split('.');
   if (group === 'settings') return settingLabels[id] ?? 'Ajuste da operação';
-  if (group === 'channel') return channelLabels[id] ?? 'Ajuste do canal de venda';
   if (group === 'ingredients') {
     const item = ingredientById[id];
     const unit = item?.unit === 'g' ? 'kg' : item?.unit === 'ml' ? 'litro' : 'unidade';
@@ -45,11 +42,9 @@ function conflictLabel(path) {
 function conflictValue(path, value) {
   if (path === 'simulation.fillings') return Array.isArray(value) ? value.map((id) => fillings.find((item) => item.id === id)?.name ?? 'Recheio não cadastrado').join(' + ') : 'Não definido';
   if (path === 'simulation.cheeseId') return cheeses.find((item) => item.id === value)?.name ?? 'Não definido';
-  if (path === 'channel.plan') return salesChannels.find((item) => item.id === value)?.name ?? 'Não definido';
-  if (path === 'channel.monthlyExempt') return value === 1 ? 'Simular carência' : 'Mês normal';
   if (!Number.isFinite(value)) return 'Não definido';
   if (path.startsWith('ingredients.') && path.endsWith('.unitPrice')) return `${money(value)} / ${ingredientById[path.split('.')[1]]?.unit === 'g' ? 'kg' : ingredientById[path.split('.')[1]]?.unit === 'ml' ? 'L' : 'un'}`;
-  const currency = path.endsWith('.price') || ['energyPerUnit', 'laborPerUnit', 'packagingPerUnit', 'deliverySubsidy', 'fixedMonthly', 'chosenPrice'].some((id) => path === `settings.${id}`) || ['basicMonthly', 'deliveryMonthly', 'monthlyThreshold', 'ifoodDeliverySubsidy', 'promotionPerUnit'].some((id) => path === `channel.${id}`);
+  const currency = path.endsWith('.price') || ['energyPerUnit', 'laborPerUnit', 'packagingPerUnit', 'fixedMonthly', 'chosenPrice'].some((id) => path === `settings.${id}`);
   return currency ? `R$ ${editableNumber(value)}` : number(value, 8);
 }
 
@@ -135,7 +130,7 @@ function IngredientRow({ item, values, fieldProps, editMany, hidden }) {
 function ComparisonTable({ values, apply, disabled, invalid }) {
   return <div className="budget-table-scroll"><table className="budget-comparison"><caption>Sete sugestões para comparar, sem definir o cardápio.</caption><thead><tr><th scope="col">Sugestão de sabor</th><th scope="col">Combinação</th><th scope="col">Custo completo</th><th scope="col">Preço sugerido</th><th scope="col"><span className="budget-sr-only">Aplicar à simulação</span></th></tr></thead><tbody>
     {presets.map((preset) => {
-      const result = estimateChannel(values, values['channel.plan'], { ...preset, palha: preset.palha ?? 0 });
+      const result = estimate(values, { ...preset, palha: preset.palha ?? 0 });
       return <tr key={preset.name}><th scope="row">{preset.name}</th><td>{preset.fillings.map((id) => fillings.find((item) => item.id === id)?.name).join(' + ')}<small>{cheeses.find((item) => item.id === preset.cheese)?.name}{preset.palha ? ` · ${preset.palha} g de palha` : ''}</small></td><td>{result.valid && !invalid ? money(result.fullCost) : 'Revisar valores'}</td><td>{result.valid && !invalid ? money(result.suggestedPrice) : '—'}</td><td><button type="button" className="budget-button secondary" onClick={() => apply(preset)} disabled={disabled}>Usar na simulação<span className="budget-sr-only">: {preset.name}</span></button></td></tr>;
     })}
   </tbody></table></div>;
@@ -145,7 +140,7 @@ function ResultPanel({ result, values, fieldProps, invalidDraft }) {
   const shown = (value) => invalidDraft ? null : value;
   const packaging = result.packagingCost + result.settings.packagingPerUnit;
   return <aside className="budget-results" aria-labelledby="budget-result-title">
-    <div className="budget-results-heading"><span className="budget-kicker">{result.channel.name}</span><h3 id="budget-result-title">Resultado da simulação</h3><p>Valores por batata, com os custos e as condições cadastrados.</p></div>
+    <div className="budget-results-heading"><span className="budget-kicker">Venda direta · retirada</span><h3 id="budget-result-title">Resultado da simulação</h3><p>Valores por batata, com os custos e as condições cadastrados.</p></div>
     <div className="budget-main-metrics">
       <div><span>Custo por batata</span><strong>{money(shown(result.fullCost))}</strong><small>Produção e rateio dos custos fixos, antes das taxas sobre a venda.</small></div>
       <div className="budget-suggested-metric"><span>Preço sugerido</span><strong>{money(shown(result.suggestedPrice))}</strong><small>Para a margem de {number(result.settings.targetMarginPercent)}% sobre a venda.</small></div>
@@ -158,18 +153,14 @@ function ResultPanel({ result, values, fieldProps, invalidDraft }) {
       <div><dt>Embalagem e itens extras</dt><dd>{money(shown(packaging))}</dd></div>
       <div><dt>Energia</dt><dd>{money(shown(result.settings.energyPerUnit))}</dd></div>
       <div><dt>Trabalho</dt><dd>{money(shown(result.settings.laborPerUnit))}</dd></div>
-      <div><dt>Entrega assumida</dt><dd>{money(shown(result.settings.deliverySubsidy))}</dd></div>
-      {result.channel.id !== 'direct' && <div><dt>Promoção paga pela loja</dt><dd>{money(shown(result.channel.promotionPerUnit))}</dd></div>}
       <div className="budget-subtotal"><dt>Custos variáveis</dt><dd>{money(shown(result.variableCost))}</dd></div>
-      <div><dt>Rateio dos fixos do negócio</dt><dd>{money(shown(result.channel.baseFixedMonthly / result.settings.unitsMonthly))}</dd></div>
-      {result.channel.id !== 'direct' && <><div><dt>Mensalidade iFood por batata</dt><dd>{money(shown(result.channel.monthly / result.settings.unitsMonthly))}</dd></div><div><dt>Comissão ({number(result.channel.commissionPercent)}%)</dt><dd>{money(shown(result.channel.commissionCost))}</dd></div><div><dt>Pagamento online ({number(result.channel.effectivePaymentPercent)}% efetivos)</dt><dd>{money(shown(result.channel.paymentCost))}</dd></div>{result.channel.otherFeePercent > 0 && <div><dt>Taxas opcionais ({number(result.channel.otherFeePercent)}%)</dt><dd>{money(shown(result.channel.otherFeeCost))}</dd></div>}</>}
-      {result.channel.id === 'direct' && <div><dt>Taxas de pagamento</dt><dd>{money(shown(result.feeCost))}</dd></div>}
+      <div><dt>Rateio dos fixos do negócio</dt><dd>{money(shown(result.settings.fixedMonthly / result.settings.unitsMonthly))}</dd></div>
+      <div><dt>Taxas de pagamento</dt><dd>{money(shown(result.feeCost))}</dd></div>
       <div><dt>Impostos ({number(result.settings.taxPercent)}%)</dt><dd>{money(shown(result.taxCost))}</dd></div>
     </dl>
-    {result.channel.id !== 'direct' && <p className="channel-result-note">Faturamento simulado: {money(shown(result.channel.grossMonthly))}. {monthlyLabels[result.channel.monthlyStatus]}: {money(shown(result.channel.monthly))}/mês. No preço sugerido, a mensalidade considerada é {money(shown(result.channel.suggestedMonthly))}/mês.</p>}
     </details>
     <details className="budget-disclosure budget-result-details"><summary>Ver projeção do mês</summary>
-    <p className="budget-help">Considera {number(result.settings.unitsMonthly, 0)} batatas vendidas neste canal, todas com esta composição.</p>
+    <p className="budget-help">Considera {number(result.settings.unitsMonthly, 0)} batatas vendidas no mês, todas com esta composição.</p>
     <div className="budget-monthly"><div><span>Resultado mensal estimado</span><strong>{money(shown(result.netMonthly))}</strong></div><div><span>Ponto de equilíbrio</span><strong>{!invalidDraft && result.breakEvenUnits !== null ? `${number(result.breakEvenUnits, 0)} batatas` : 'Não calculável'}</strong></div></div>
     <div className="budget-contribution"><span>Contribuição antes dos fixos</span><strong>{money(shown(result.contribution))}</strong><small>{number(shown(result.contributionMarginPercent))}% do preço testado. Esse valor ainda paga os custos fixos.</small></div>
     </details>
@@ -180,14 +171,12 @@ function ResultPanel({ result, values, fieldProps, invalidDraft }) {
 function fieldTab(path) {
   if (path.startsWith('ingredients.')) return 'custos';
   if (path.startsWith('recipes.')) return 'receitas';
-  if (path === 'channel.plan') return 'simular';
-  if (path.startsWith('channel.') || ['settings.deliverySubsidy', 'settings.feePercent'].includes(path)) return 'canais';
   return operationFields.some(({ id }) => path === `settings.${id}`) ? 'operacao' : 'simular';
 }
 
 function alertPath(item, result) {
   const path = item.field ?? '';
-  if (/^(settings|channel|ingredients|recipes|simulation)\./.test(path)) return path;
+  if (/^(settings|ingredients|recipes|simulation)\./.test(path)) return path;
   if (path.startsWith('rows.')) {
     const [, index, field] = path.split('.');
     const ingredient = result.rows[Number(index)];
@@ -210,7 +199,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
   const [fieldErrors, setFieldErrors] = useState({});
   const values = { ...defaultFields, ...sharedBudget.values };
   const selected = Array.isArray(values['simulation.fillings']) ? values['simulation.fillings'] : [];
-  const result = estimateChannel(values);
+  const result = estimate(values);
   const inputErrors = configurationErrors(values);
   const localErrors = Object.entries(fieldErrors).map(([path, message]) => ({ path, message }));
   const allErrors = [...localErrors, ...inputErrors, ...result.alerts.filter((item) => item.severity !== 'warning').map((item) => ({ path: alertPath(item, result), message: item.message }))];
@@ -291,17 +280,17 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
   const saveStatus = sharedBudget.saving ? 'Salvando orçamento…' : sharedBudget.loading && !sharedBudget.cloud ? 'Carregando o orçamento compartilhado…' : sharedBudget.error ? 'O salvamento precisa de atenção' : sharedBudget.notice || (sharedBudget.dirty ? `${sharedBudget.dirty} ${sharedBudget.dirty === 1 ? 'alteração ainda não salva' : 'alterações ainda não salvas'}` : sharedBudget.cloud ? 'Valores compartilhados carregados' : 'Conecte para salvar o orçamento');
 
   return <section ref={rootRef} id="orcamento" className="budget page-width" aria-labelledby="budget-title" onToggleCapture={keepErrorsVisible}>
-    <header className="budget-header"><div><span className="budget-kicker">PLANEJAMENTO DO DELIVERY</span><h1 id="budget-title">Quanto custa e por quanto vender?</h1><p>Montem uma batata, confiram o custo e testem o preço. Os valores de compra e as despesas ficam nas abas ao lado.</p></div><div className="budget-research-date"><strong>Pesquisa de preços</strong><span>{RESEARCH_DATE} · Goiânia e região</span></div></header>
+    <header className="budget-header"><div><span className="budget-kicker">PRODUÇÃO CASEIRA · RETIRADA</span><h1 id="budget-title">Quanto custa e por quanto vender?</h1><p>Montem uma batata, confiram o custo e testem o preço. Os valores de compra e as despesas ficam nas abas ao lado.</p></div><div className="budget-research-date"><strong>Pesquisa de preços</strong><span>{RESEARCH_DATE} · Goiânia e região</span></div></header>
     <div className="budget-savebar"><div><span className="budget-save-status" role="status">{saveStatus}</span><p>Editar recalcula nesta aba. Salvar envia o orçamento para vocês dois.</p></div><div className="budget-save-actions"><button type="button" className="budget-button secondary" onClick={sharedBudget.refresh} disabled={sharedBudget.saving || sharedBudget.loading} aria-label="Atualizar orçamento compartilhado"><ArrowClockwise size={18} aria-hidden="true" /><span>Atualizar</span></button><button type="button" className="budget-button primary" onClick={() => { if (canSave) sharedBudget.save(); }} disabled={!canSave}><FloppyDisk size={19} aria-hidden="true" />{sharedBudget.saving ? 'Salvando…' : 'Salvar orçamento'}</button></div></div>
     {sharedBudget.error && <div className="budget-alert error" role="alert"><WarningCircle size={20} aria-hidden="true" /><p>{sharedBudget.error}</p></div>}
     {conflicts.length > 0 && <section className="budget-conflicts" aria-labelledby="budget-conflict-title"><h3 id="budget-conflict-title">Confira as mudanças do outro aparelho.</h3><p>Suas edições continuam no formulário. Compare os valores abaixo e confira antes de clicar em Salvar novamente.</p><div className="budget-table-scroll"><table><thead><tr><th scope="col">Campo</th><th scope="col">Valor online</th><th scope="col">Sua edição</th></tr></thead><tbody>{conflicts.map((conflict) => <tr key={conflict.path}><th scope="row">{conflictLabel(conflict.path)}</th><td>{conflictValue(conflict.path, conflict.remote)}</td><td>{conflictValue(conflict.path, conflict.local)}</td></tr>)}</tbody></table></div></section>}
     {errors.length > 0 && <div className="budget-alert error" role="alert"><WarningCircle size={20} aria-hidden="true" /><div><strong>Revise os valores antes de salvar.</strong><p>Abra o campo indicado para corrigir. Suas edições continuam no formulário.</p><ul>{errors.map(({ path, message }) => <li key={path}><button type="button" className="budget-error-link" onClick={() => goToField(path)}>{message}<span> · Abrir {budgetTabs.find((item) => item.id === fieldTab(path))?.name}</span></button></li>)}</ul></div></div>}
     {warnings.map((message) => <div key={message} className="budget-alert warning"><WarningCircle size={20} aria-hidden="true" /><p>{message}</p></div>)}
     <div role="tablist" aria-label="Ferramentas do orçamento" className="budget-tabs">{budgetTabs.map((item) => <button key={item.id} type="button" role="tab" id={`budget-tab-${item.id}`} aria-selected={tab === item.id} aria-controls={`budget-panel-${item.id}`} tabIndex={tab === item.id ? 0 : -1} onClick={() => onTabChange?.(item.id)} onKeyDown={tabKeys}>{item.name}</button>)}</div>
-    <aside className="budget-compact-summary" hidden={tab === 'simular'} aria-label="Resumo da simulação atual"><div><span>Simulação atual · {result.channel.name}</span><p>Preço testado: <strong>{money(invalid ? null : values['settings.chosenPrice'])}</strong> · Sobra por batata: <strong>{money(invalid ? null : result.netUnit)}</strong></p></div><button type="button" className="text-link" onClick={() => onTabChange?.('simular')}>Voltar à simulação</button></aside>
+    <aside className="budget-compact-summary" hidden={tab === 'simular'} aria-label="Resumo da simulação atual"><div><span>Simulação atual · venda direta com retirada</span><p>Preço testado: <strong>{money(invalid ? null : values['settings.chosenPrice'])}</strong> · Sobra por batata: <strong>{money(invalid ? null : result.netUnit)}</strong></p></div><button type="button" className="text-link" onClick={() => onTabChange?.('simular')}>Voltar à simulação</button></aside>
     <div className="budget-panels">
       <div role="tabpanel" id="budget-panel-simular" aria-labelledby="budget-tab-simular" hidden={tab !== 'simular'} tabIndex={0}>
-        <div className="budget-channel-bar"><div className="budget-field"><label htmlFor="budget-channel">Canal para simular</label><select id="budget-channel" name="channel.plan" data-field-path="channel.plan" value={values['channel.plan']} disabled={disabled} onChange={(event) => sharedBudget.edit('channel.plan', event.target.value)}>{salesChannels.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div><div><p>{values['channel.plan'] === 'direct' ? 'Vocês recebem os pedidos e organizam a entrega. Confiram as taxas e o frete em Vendas e entrega.' : salesChannels.find((item) => item.id === values['channel.plan'])?.description}</p><button type="button" onClick={() => onTabChange?.('canais')}>Comparar canais e ajustar condições</button></div></div>
+        <div className="budget-pickup-note"><strong>Venda direta, por encomenda e com retirada no local.</strong><p>A produção é feita em casa. O cliente combina o pedido e vem buscar; não há serviço de entrega nem intermediário.</p></div>
         <div className="budget-workspace"><ResultPanel result={result} values={values} fieldProps={fieldProps} invalidDraft={invalid} /><div className="budget-editor">
         <div className="budget-section-heading"><h3>Monte uma batata</h3><p>Base + uma escolha de queijo + até três recheios.</p></div>
         <fieldset className="budget-fieldset"><legend>Base e complementos</legend><div className="budget-form-grid">
@@ -335,15 +324,14 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
         <p className="budget-price-guide">As <strong>partes</strong> definem a proporção de cada ingrediente, e não o peso da porção. Exemplo: 50 partes de um total de 100 representam metade do recheio; em uma porção de 150 g, são 75 g.</p>
         {fillings.map((filling) => { const total = Object.keys(filling.parts).reduce((sum, id) => sum + values[`recipes.${filling.id}.${id}`], 0); return <details key={filling.id} className="budget-disclosure budget-recipe"><summary>{filling.name}<span>{number(total)} partes no total</span></summary><div className="budget-recipe-inputs">{Object.keys(filling.parts).map((id) => <NumberField key={id} {...fieldProps} path={`recipes.${filling.id}.${id}`} label={ingredientById[id].name} value={values[`recipes.${filling.id}.${id}`]} unit="partes" context={filling.name} />)}</div></details>; })}
       </div>
-      <div role="tabpanel" id="budget-panel-canais" aria-labelledby="budget-tab-canais" className="budget-editor budget-config-editor" hidden={tab !== 'canais'} tabIndex={0}><SalesChannels values={values} edit={sharedBudget.edit} fieldProps={fieldProps} NumberField={NumberField} invalid={invalid} onTabChange={onTabChange} /></div>
       <div role="tabpanel" id="budget-panel-operacao" aria-labelledby="budget-tab-operacao" className="budget-editor budget-config-editor" hidden={tab !== 'operacao'} tabIndex={0}>
         <div className="budget-section-heading"><h3>Despesas e meta de venda</h3><p>Registrem os custos além da compra dos ingredientes e o volume que esperam vender. São hipóteses até medir a operação.</p></div>
         {[
           { title: 'Custos por batata', ids: ['energyPerUnit', 'laborPerUnit', 'packagingPerUnit', 'lossPercent'] },
           { title: 'Custos fixos e volume do mês', ids: ['fixedMonthly', 'unitsMonthly'] },
-          { title: 'Impostos e margem desejada', ids: ['taxPercent', 'targetMarginPercent'] },
+          { title: 'Impostos, pagamento e margem desejada', ids: ['taxPercent', 'feePercent', 'targetMarginPercent'] },
         ].map((group) => <fieldset key={group.title} className="budget-fieldset"><legend>{group.title}</legend><div className="budget-operation-grid">{group.ids.map((id) => { const { label, unit, ...props } = operationFields.find((field) => field.id === id); return settingField(id, label, unit, props); })}</div></fieldset>)}
-        <p className="budget-help">Entrega e taxas de pagamento ficam em <button type="button" className="text-link" onClick={() => onTabChange?.('canais')}>Vendas e entrega</button>.</p>
+        <p className="budget-help">Como os pedidos são retirados no local, não há custo de entrega nesta simulação. Informe somente taxas de pagamento que realmente sejam cobradas.</p>
         <details className="budget-disclosure budget-operation-note"><summary>Como os custos entram na conta</summary><p>Conte cada custo uma vez. Os rendimentos dos ingredientes já consideram perdas de preparo; a reserva adicional cobre outras perdas. O custo dos pacotes já entra em embalagem; registre aqui apenas os extras.</p><p>Preço sugerido = custo completo ÷ (1 − impostos − taxas − margem desejada). A margem é uma parte do preço de venda.</p></details>
       </div>
     </div>
