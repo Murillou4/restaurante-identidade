@@ -107,8 +107,8 @@ function IngredientRow({ item, values, fieldProps, hidden }) {
   const data = ingredientValues(item, values);
   const edited = data.price !== item.price || data.packageSize !== item.packageSize;
   const packaging = item.type === 'packaging';
-  const unitName = item.unit === 'g' ? 'g' : item.unit === 'ml' ? 'ml' : 'un';
-  const baseUnit = item.unit === 'g' ? 'kg' : item.unit === 'ml' ? 'L' : 'un';
+  const unitName = item.unit;
+  const baseUnit = item.unit === 'g' || item.unit === 'kg' ? 'kg' : item.unit === 'ml' || item.unit === 'l' ? 'L' : 'un';
   return <article className="budget-ingredient" hidden={hidden}>
     <div className="budget-ingredient-info"><h4>{item.name}</h4><div className="budget-source-status"><span className={`budget-tag status-${item.status}`}>{edited ? 'Seu valor' : statuses[item.status]}</span><span>{item.store}</span></div></div>
     <div className="budget-ingredient-inputs">
@@ -141,7 +141,7 @@ function CustomIngredientRow({ item, values, fieldProps, onMetadataChange, onRem
     <div className="budget-custom-meta">
       <div className="budget-field"><label htmlFor={`custom-name-${item.id}`}>Nome do item</label><input id={`custom-name-${item.id}`} value={name} maxLength={80} onChange={(event) => setName(event.target.value)} onBlur={updateName} disabled={fieldProps.disabled} /></div>
       <div className="budget-field"><label htmlFor={`custom-category-${item.id}`}>Categoria</label><select id={`custom-category-${item.id}`} value={item.category ?? (item.type === 'packaging' ? 'packaging' : 'ingredient')} disabled={fieldProps.disabled} onChange={(event) => { const category = event.target.value; onMetadataChange(item.id, { category, type: ['packaging', 'material'].includes(category) ? 'packaging' : 'food' }); }}><option value="ingredient">Ingrediente</option><option value="beverage">Bebida</option><option value="packaging">Embalagem</option><option value="material">Material</option></select></div>
-      <div className="budget-field"><label htmlFor={`custom-unit-${item.id}`}>Unidade</label><select id={`custom-unit-${item.id}`} value={item.unit} disabled={fieldProps.disabled} onChange={(event) => onMetadataChange(item.id, { unit: event.target.value })}><option value="g">Gramas (g)</option><option value="ml">Mililitros (ml)</option><option value="un">Unidade (un)</option></select></div>
+      <div className="budget-field"><label htmlFor={`custom-unit-${item.id}`}>Unidade</label><select id={`custom-unit-${item.id}`} value={item.unit} disabled={fieldProps.disabled} onChange={(event) => onMetadataChange(item.id, { unit: event.target.value })}><option value="g">Gramas (g)</option><option value="kg">Quilogramas (kg)</option><option value="ml">Mililitros (ml)</option><option value="l">Litros (L)</option><option value="un">Unidade (un)</option></select></div>
     </div>
     <div className="budget-ingredient-inputs">
       <NumberField {...fieldProps} path={`ingredients.${item.id}.price`} label="Preço pago" value={data.price} unit="R$" context={item.name} max={10000000} />
@@ -273,7 +273,25 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
   };
   const filteredIngredients = catalog.filter((item) => `${item.name} ${item.store ?? ''}`.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')));
   const visibleIngredientIds = new Set(filteredIngredients.map((item) => item.id));
-  const updateCustomMetadata = (id, patch) => sharedBudget.edit(CUSTOM_CATALOG_FIELD, serializeCustomIngredients(customIngredients.map((item) => item.id === id ? { ...item, ...patch } : item)));
+  const updateCustomMetadata = (id, patch) => {
+    const current = customIngredients.find((item) => item.id === id);
+    if (!current) return;
+    const changes = {};
+    if (patch.unit && patch.unit !== current.unit) {
+      const dimension = (unit) => ['g', 'kg'].includes(unit) ? 'mass' : ['ml', 'l'].includes(unit) ? 'volume' : 'count';
+      const factors = { g: 1, kg: 1000, ml: 1, l: 1000, un: 1 };
+      if (dimension(patch.unit) !== dimension(current.unit)) {
+        window.alert('Não é possível trocar massa por volume ou unidade. Cadastre um novo item com a medida correta.');
+        return;
+      }
+      const packagePath = 'ingredients.' + id + '.packageSize';
+      const currentSize = values[packagePath];
+      if (Number.isFinite(currentSize)) changes[packagePath] = currentSize * factors[current.unit] / factors[patch.unit];
+    }
+    const next = customIngredients.map((item) => item.id === id ? { ...item, ...patch } : item);
+    changes[CUSTOM_CATALOG_FIELD] = serializeCustomIngredients(next);
+    sharedBudget.editMany(changes);
+  };
   const removeCustomIngredient = (id) => {
     const item = customIngredients.find((entry) => entry.id === id);
     if (!item || !window.confirm(`Remover ${item.name} do cadastro? Ele deixará de entrar nos cálculos futuros.`)) return;
@@ -369,7 +387,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
           <div className="budget-add-grid">
             <div className="budget-field"><label htmlFor="new-item-name">Nome</label><input id="new-item-name" required maxLength={80} value={newItem.name} onChange={(event) => setNewItem((current) => ({ ...current, name: event.target.value }))} placeholder="Ex.: catupiry, refrigerante…" /></div>
             <div className="budget-field"><label htmlFor="new-item-category">Categoria</label><select id="new-item-category" value={newItem.category} onChange={(event) => setNewItem((current) => ({ ...current, category: event.target.value }))}><option value="ingredient">Ingrediente</option><option value="beverage">Bebida</option><option value="packaging">Embalagem</option><option value="material">Material</option></select></div>
-            <div className="budget-field"><label htmlFor="new-item-unit">Unidade de compra</label><select id="new-item-unit" value={newItem.unit} onChange={(event) => setNewItem((current) => ({ ...current, unit: event.target.value }))}><option value="g">Gramas (g)</option><option value="ml">Mililitros (ml)</option><option value="un">Unidade (un)</option></select></div>
+            <div className="budget-field"><label htmlFor="new-item-unit">Unidade de compra</label><select id="new-item-unit" value={newItem.unit} onChange={(event) => { const unit = event.target.value; setNewItem((current) => ({ ...current, unit, packageSize: ['kg', 'l', 'un'].includes(unit) ? '1' : '1000' })); }}><option value="g">Gramas (g)</option><option value="kg">Quilogramas (kg)</option><option value="ml">Mililitros (ml)</option><option value="l">Litros (L)</option><option value="un">Unidade (un)</option></select></div>
             <div className="budget-field"><label htmlFor="new-item-price">Preço pago (R$)</label><input id="new-item-price" required type="number" min="0" step="0.000001" value={newItem.price} onChange={(event) => setNewItem((current) => ({ ...current, price: event.target.value }))} /></div>
             <div className="budget-field"><label htmlFor="new-item-size">Quantidade da embalagem ({newItem.unit})</label><input id="new-item-size" required type="number" min="0.000001" step="any" value={newItem.packageSize} onChange={(event) => setNewItem((current) => ({ ...current, packageSize: event.target.value }))} /></div>
             {!['packaging', 'material'].includes(newItem.category) ? <div className="budget-field"><label htmlFor="new-item-yield">Rendimento após preparo (%)</label><input id="new-item-yield" required type="number" min="0.000001" max="100" step="any" value={newItem.yieldPercent} onChange={(event) => setNewItem((current) => ({ ...current, yieldPercent: event.target.value }))} /></div> : <div className="budget-field"><label htmlFor="new-item-amount">Quantidade por pedido (un)</label><input id="new-item-amount" required type="number" min="0" step="any" value={newItem.amount} onChange={(event) => setNewItem((current) => ({ ...current, amount: event.target.value }))} /></div>}
