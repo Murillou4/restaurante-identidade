@@ -41,6 +41,12 @@ export const ingredients = [
  * can migrate without losing any of their existing ingredient values. Numeric
  * purchase values remain normal budget fields and therefore use the same
  * validation and conflict handling as the built-in catalog. */
+export function normalizeMeasureUnit(unit) {
+  if (unit === 'g' || unit === 'kg') return 'g';
+  if (unit === 'ml' || unit === 'l') return 'ml';
+  return unit === 'un' ? 'un' : null;
+}
+
 export function readCustomIngredients(values = {}) {
   let parsed;
   try { parsed = JSON.parse(values[CUSTOM_CATALOG_FIELD] || '[]'); } catch { return []; }
@@ -50,7 +56,7 @@ export function readCustomIngredients(values = {}) {
     typeof item.id === 'string' && /^custom-[a-f0-9-]{8,64}$/i.test(item.id) &&
     typeof item.name === 'string' && item.name.trim().length > 0 &&
     ['food', 'packaging'].includes(item.type) &&
-    ['g', 'ml', 'un'].includes(item.unit) &&
+    ['g', 'kg', 'ml', 'l', 'un'].includes(item.unit) &&
     item.custom === true
   ).map((item) => ({ ...item, category: ['ingredient', 'beverage', 'packaging', 'material'].includes(item.category) ? item.category : (item.type === 'packaging' ? 'packaging' : 'ingredient'), name: item.name.trim() }));
 }
@@ -59,7 +65,7 @@ export function serializeCustomIngredients(items) {
   return JSON.stringify(items.filter((item) =>
     item && typeof item.id === 'string' && /^custom-[a-f0-9-]{8,64}$/i.test(item.id) &&
     typeof item.name === 'string' && item.name.trim() &&
-    ['food', 'packaging'].includes(item.type) && ['g', 'ml', 'un'].includes(item.unit)
+    ['food', 'packaging'].includes(item.type) && ['g', 'kg', 'ml', 'l', 'un'].includes(item.unit)
   ).map((item) => ({ ...item, category: ['ingredient', 'beverage', 'packaging', 'material'].includes(item.category) ? item.category : (item.type === 'packaging' ? 'packaging' : 'ingredient'), name: item.name.trim(), custom: true })));
 }
 
@@ -98,7 +104,8 @@ export function getSettings(values) {
 export function ingredientValues(item, values) {
   const price = values[`ingredients.${item.id}.price`];
   const packageSize = values[`ingredients.${item.id}.packageSize`];
-  return { price, packageSize, yieldPercent: item.id === 'batata' ? 100 : values[`ingredients.${item.id}.yieldPercent`], unitPrice: price / packageSize * (item.unit === 'un' ? 1 : 1000), amount: values[`ingredients.${item.id}.amount`] ?? item.amount };
+  const scale = item.unit === 'g' || item.unit === 'ml' ? 1000 : 1;
+  return { price, packageSize, yieldPercent: item.id === 'batata' ? 100 : values[`ingredients.${item.id}.yieldPercent`], unitPrice: price / packageSize * scale, amount: values[`ingredients.${item.id}.amount`] ?? item.amount };
 }
 
 // Existing values keep their original package basis. Only an explicit unit-price
@@ -122,7 +129,7 @@ function costQuantities(values, quantities, catalog = ingredients) {
   for (const [id, quantity] of entries) {
     const item = catalog.find((ingredient) => ingredient.id === id && ingredient.type === 'food');
     if (!item) return null;
-    rows.push({ id, name: item.name, unit: item.unit, quantity, ...ingredientValues(item, values) });
+    rows.push({ id, name: item.name, unit: normalizeMeasureUnit(item.unit), quantity, ...ingredientValues(item, values) });
   }
   return calculateBudget({ rows }).ingredientCost;
 }
@@ -172,7 +179,7 @@ export function estimate(values, selection) {
     const total = costs.fillings.reduce((sum, item) => sum + item.cost, 0);
     costs.fillingsTotal = Number.isFinite(total) ? total : null;
   }
-  const rows = catalog.filter((item) => item.type === 'food' && quantities[item.id] !== 0 && quantities[item.id] !== undefined).map((item) => ({ id: item.id, name: item.name, unit: item.unit, quantity: quantities[item.id], ...ingredientValues(item, values) }));
+  const rows = catalog.filter((item) => item.type === 'food' && quantities[item.id] !== 0 && quantities[item.id] !== undefined).map((item) => ({ id: item.id, name: item.name, unit: normalizeMeasureUnit(item.unit), quantity: quantities[item.id], ...ingredientValues(item, values) }));
   const packaging = catalog.filter((item) => item.type === 'packaging').map((item) => ({ id: item.id, name: item.name, ...ingredientValues(item, values) }));
   const packagingCost = packaging.reduce((sum, item) => sum + item.unitPrice * item.amount, 0);
   const result = calculateBudget({ rows, settings: { ...settings, packagingPerUnit: settings.packagingPerUnit + packagingCost } });
