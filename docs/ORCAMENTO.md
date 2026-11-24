@@ -8,7 +8,7 @@ A referência de implementação é o [catálogo](../site/src/budgetCatalog.js),
 
 1. Abrir o mesmo link completo do caderno nos dois aparelhos. A entrada mostra o **Preço de venda**, o custo e a sobra por batata.
 2. Em **Preços de compra**, informar o valor por quilo, litro ou unidade. Para um pacote de 5 kg por R$ 25,00, abrir **Calcular pelo pacote** e preencher os dois valores. O campo principal mostra R$ 5,00/kg. A lista também permite cadastrar itens e ajustar quanto se aproveita após o preparo.
-3. Em **Preço de venda**, informar o **Preço que quer cobrar**. Abrir **Mudar recheios e queijo**, **Ajustar porções** ou **Ver quantidades para comprar** quando precisar.
+3. Em **Preço de venda**, informar o **Lucro desejado** como porcentagem do preço de venda. O **Preço sugerido** se atualiza enquanto você edita. Use **Preço que quer cobrar** para ver a sobra no valor que pretende cobrar. Abra **Mudar recheios e queijo**, **Ajustar porções** ou **Ver quantidades para comprar** quando precisar.
 4. Abrir **Receitas e despesas** para ajustar a composição dos recheios, os custos fixos, o volume mensal e as demais despesas.
 5. Clicar em **Salvar** e aguardar **Salvo**. O outro aparelho pode reabrir o link para conferir os mesmos valores.
 

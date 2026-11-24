@@ -30,13 +30,13 @@ const operationFields = [
   { id: 'lossPercent', label: 'Reserva adicional para perdas', unit: '%', max: 100, help: 'Somente perdas extras, além do rendimento de preparo.' },
   { id: 'taxPercent', label: 'Impostos sobre a venda', unit: '%', max: 100, help: 'Hipótese editável conforme a forma de operação.' },
   { id: 'feePercent', label: 'Taxa média de pagamento', unit: '%', max: 100, help: 'Informe a taxa da maquininha ou do meio de pagamento. Use 0% quando não houver tarifa, como no Pix ou dinheiro sem cobrança.' },
-  { id: 'targetMarginPercent', label: 'Margem desejada sobre a venda', unit: '%', max: 100, help: 'Depois dos ingredientes, taxas e rateio dos fixos.' },
 ];
 
 const settingLabels = {
   potatoGrams: 'Batata por porção', oilMl: 'Óleo por porção', saltGrams: 'Sal por porção',
   cheeseGrams: 'Quantidade total de queijo', fillingTotalGrams: 'Peso total dos recheios',
   palhaGrams: 'Batata palha', greensGrams: 'Cheiro-verde', chosenPrice: 'Preço que quer cobrar',
+  targetMarginPercent: 'Lucro desejado',
   ...Object.fromEntries(operationFields.map((field) => [field.id, field.label])),
 };
 function conflictLabel(path, catalog) {
@@ -55,6 +55,7 @@ function conflictValue(path, value, unit) {
   if (path === 'simulation.cheeseId') return cheeses.find((item) => item.id === value)?.name ?? 'Não definido';
   if (!Number.isFinite(value)) return 'Não definido';
   if (unit) return `${money(value)} / ${unit}`;
+  if (path === 'settings.targetMarginPercent') return `${number(value, 8)}%`;
   const currency = path.endsWith('.price') || ['energyPerUnit', 'laborPerUnit', 'packagingPerUnit', 'fixedMonthly', 'chosenPrice'].some((id) => path === `settings.${id}`);
   return currency ? `R$ ${editableNumber(value)}` : number(value, 8);
 }
@@ -74,9 +75,9 @@ function NumberField({ path, label, value, edit, onValidity, unit, prefix, help,
   const change = (event) => {
     const text = event.target.value;
     setDraft(text);
-    const parsed = readDecimal(text);
+    const parsed = readDecimal(unit === '%' ? text.replace(/%\s*$/, '') : text);
     let message = '';
-    if (!Number.isFinite(parsed)) message = 'Informe um número. Use vírgula para os centavos.';
+    if (!Number.isFinite(parsed)) message = unit === '%' ? 'Informe uma porcentagem. Use vírgula para os decimais.' : 'Informe um número. Use vírgula para os centavos.';
     else if (positive ? parsed <= 0 : parsed < 0) message = positive ? 'O valor precisa ser maior que zero.' : 'O valor não pode ser negativo.';
     else if (max !== undefined && parsed > max) message = `O máximo é ${max}${unit === '%' ? '%' : ''}.`;
     else if (integer && !Number.isSafeInteger(parsed)) message = 'Use uma quantidade inteira.';
@@ -225,10 +226,21 @@ function ResultPanel({ result, values, fieldProps, unavailable, warnings, childr
   const hasLoss = !unavailable && result.netUnit < 0;
   return <>
     <div className="budget-results">
-      <dl className="budget-main-metrics">
-        <div><dt>Custo por batata</dt><dd>{money(shown(result.fullCost))}</dd></div>
-        <div className="budget-suggested-metric"><dt>Preço sugerido</dt><dd>{money(shown(result.suggestedPrice))}</dd></div>
-      </dl>
+      <div className="budget-main-metrics">
+        <dl><dt>Custo por batata</dt><dd>{money(shown(result.fullCost))}</dd></dl>
+        <div className="budget-suggested-metric">
+          <dl><dt>Preço sugerido</dt><dd>{money(shown(result.suggestedPrice))}</dd></dl>
+          <NumberField
+            {...fieldProps}
+            path="settings.targetMarginPercent"
+            label={settingLabels.targetMarginPercent}
+            value={values['settings.targetMarginPercent']}
+            unit="%"
+            max={100}
+            help="% do preço de venda."
+          />
+        </div>
+      </div>
       <div className="budget-sale-test">
         <NumberField {...fieldProps} path="settings.chosenPrice" label="Preço que quer cobrar" value={values['settings.chosenPrice']} prefix="R$" currency />
         <dl className={`budget-net-metric ${hasLoss ? 'is-negative' : ''}`}>
@@ -239,7 +251,7 @@ function ResultPanel({ result, values, fieldProps, unavailable, warnings, childr
     </div>
     {children}
     <details className="budget-disclosure budget-result-details"><summary>Ver detalhes da conta</summary>
-    <p className="budget-help">O preço sugerido considera uma margem de {number(result.settings.targetMarginPercent)}% e as taxas cadastradas.</p>
+    <p className="budget-help">O lucro desejado é a parte do preço de venda que sobra depois dos custos e das taxas.</p>
     <dl className="budget-breakdown">
       <div><dt>Ingredientes</dt><dd>{money(shown(result.ingredientCost))}</dd></div>
       <div><dt>Reserva adicional para perdas</dt><dd>{money(shown(result.lossCost))}</dd></div>
@@ -656,7 +668,7 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
       {[
         { title: 'Custos por batata', ids: ['energyPerUnit', 'laborPerUnit', 'packagingPerUnit', 'lossPercent'] },
         { title: 'Custos fixos e vendas do mês', ids: ['fixedMonthly', 'unitsMonthly'] },
-        { title: 'Impostos, taxas e margem', ids: ['taxPercent', 'feePercent', 'targetMarginPercent'] },
+        { title: 'Impostos e taxas', ids: ['taxPercent', 'feePercent'] },
       ].map((group) => <fieldset key={group.title} className="budget-fieldset">
         <legend>{group.title}</legend>
         <div className="budget-operation-grid">{group.ids.map((id) => {

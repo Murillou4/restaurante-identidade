@@ -4,9 +4,9 @@ Caderno para acompanhar o custo e o preço de venda das batatas recheadas feitas
 
 ## Usar o caderno
 
-- **Preço de venda** mostra o custo, o preço sugerido e a sobra ou o prejuízo por batata. Recheios, queijo, porções, custos e quantidades de compra podem ser consultados ou ajustados ali.
+- **Preço de venda** mostra o custo, o preço sugerido e a sobra ou o prejuízo por batata. Digite o **Lucro desejado** para recalcular o preço sugerido e use **Preço que quer cobrar** para testar um valor de venda.
 - **Preços de compra** aceita o preço por quilo, litro ou unidade. **Calcular pelo pacote** usa o preço pago e a quantidade comprada. A lista também permite cadastrar ingredientes, bebidas, embalagens e materiais.
-- **Receitas e despesas** reúne a composição dos recheios, os custos fixos, as taxas e a meta de venda.
+- **Receitas e despesas** reúne a composição dos recheios, os custos fixos, as taxas e o volume mensal.
 - **Marca** reúne sugestões de nome e referências de logo. Escolha **Mãe** ou **Filho** para marcar favoritos nas próprias opções.
 
 Os sabores do cartaz são **Pizza**, **Bacon**, **Calabresa** e **Frango**. A Pizza pede os preços de presunto e orégano. Esses dois preços, as proporções e a seleção da Pizza são guardados no navegador, por caderno. As demais compras e ajustes continuam usando o salvamento compartilhado.

@@ -160,7 +160,7 @@ export function calculateBudget(input = {}) {
     ? 1 - (settings.taxPercent + settings.feePercent + settings.targetMarginPercent) / 100
     : null;
   if (denominator !== null && denominator <= 0) {
-    addAlert(alerts, 'PRICE_DENOMINATOR', 'settings.targetMarginPercent', 'Taxas, impostos e margem desejada precisam somar menos de 100%.');
+    addAlert(alerts, 'PRICE_DENOMINATOR', 'settings.targetMarginPercent', 'Lucro desejado, taxas e impostos precisam somar menos de 100%.');
   }
   const suggestedPrice = fullCost !== null && denominator !== null && denominator > 0
     ? finiteResult(fullCost / denominator, 'suggestedPrice')
