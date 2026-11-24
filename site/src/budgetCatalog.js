@@ -2,6 +2,10 @@ import { calculateBudget, distributeFillings, DEFAULT_BUDGET_SETTINGS } from './
 
 export const RESEARCH_DATE = '06/10/2026';
 export const CUSTOM_CATALOG_FIELD = 'settings.customCatalog';
+export const PIZZA_MODE_FIELD = 'simulation.pizza';
+export const pizzaPurchaseIds = ['presunto', 'oregano'];
+const deviceMenuField = /^(?:ingredients\.(?:presunto|oregano)\.|recipes\.pizza\.)/;
+export const isDeviceMenuField = (path) => path === PIZZA_MODE_FIELD || deviceMenuField.test(path);
 const sousa = 'https://www.cardapio.datacaixa.com.br/loja=7655';
 const moreira = 'https://www.moreira.com.br/p/';
 const jk = 'https://www.embalagensjk.com.br/produto/';
@@ -31,6 +35,8 @@ export const ingredients = [
   ingredient('champignon', 'Champignon', 'g', 200, 32.9, 'Hiper Moreira · Coimbra', `${moreira}cogumelo-champignon-em-conserva-fatiado-aica-selecao-premium-vidro-200g`, 'Preço anunciado, porém indisponível. 200 g drenados; não usar 580 g de peso líquido para calcular a porção.', 100, 'unavailable'),
   ingredient('batata-palha', 'Batata palha', 'g', 110, 7.99, 'Hiper Moreira · Coimbra', `${moreira}batata-palha-moinho-fino-tradicional-110g`),
   ingredient('cheiro-verde', 'Cheiro-verde', 'g', 50, 3, 'A cotar', '', 'Preço e peso do maço são hipóteses; pesar antes de lançar o custo real.', 100, 'estimate'),
+  ingredient('presunto', 'Presunto', 'g', 1000, null, '', '', '', 100, 'estimate'),
+  ingredient('oregano', 'Orégano', 'g', 1000, null, '', '', '', 100, 'estimate'),
   ingredient('pote', 'Bandeja com tampa', 'un', 100, 99.99, 'JK Embalagens · Campinas', `${jk}bandeja-de-aluminio-4p-m170-215x170x40-100x1`, 'Alumínio 1.100 ml com tampa. Altura de 4 cm: testar fechamento com batata grande e recheios.', 100, 'reference', 'packaging'),
   ingredient('saco', 'Saco para retirada', 'un', 100, 80.5, 'JK Embalagens · Campinas', `${jk}saco-papel-p-delivery-25kg`, '31 × 37 × 18 cm. Testar o conjunto com a bandeja; frete de compra não incluído.', 100, 'reference', 'packaging'),
   ingredient('talher', 'Garfo descartável', 'un', 1000, 60, 'Potência · Goiânia', 'https://www.potenciaembalagens.com.br/descartaveis/garfo-refeicao-linha-pratica-leve', '', 100, 'reference', 'packaging'),
@@ -91,6 +97,13 @@ export const fillings = [
   { id: 'milho', name: 'Milho cremoso', vegetarian: true, parts: { milho: 75, requeijao: 23, cebola: 2 } },
   { id: 'brocolis', name: 'Brócolis cremoso', vegetarian: true, parts: { brocolis: 70, requeijao: 25, manteiga: 3, cebola: 2 } },
   { id: 'champignon', name: 'Champignon cremoso', vegetarian: true, parts: { champignon: 70, requeijao: 25, manteiga: 3, cebola: 2 } },
+  { id: 'pizza', name: 'Pizza', parts: { presunto: 68, requeijao: 28, manteiga: 3.5, oregano: 0.5 } },
+];
+export const menuFlavors = [
+  { id: 'pizza', name: 'Pizza', fillings: ['pizza'], cheese: 'mucarela', palha: 0, assembly: 'Requeijão, presunto picado, muçarela, orégano e mais requeijão por cima.' },
+  { id: 'bacon', name: 'Bacon', fillings: ['bacon'], cheese: 'misto', assembly: 'Requeijão, bacon picado e frito, muçarela e cheddar.' },
+  { id: 'calabresa', name: 'Calabresa', fillings: ['calabresa'], cheese: 'misto', assembly: 'Requeijão, calabresa ralada, muçarela e cheddar.' },
+  { id: 'frango', name: 'Frango', fillings: ['frango'], cheese: 'misto', assembly: 'Requeijão, frango refogado e desfiado, mais requeijão e cheddar.' },
 ];
 export const presets = [
   { name: 'Frango cremoso', fillings: ['frango'], cheese: 'mucarela' },
@@ -107,7 +120,7 @@ export const defaultFields = Object.fromEntries([
   ...Object.entries({ ...DEFAULT_BUDGET_SETTINGS, packagingPerUnit: 0, palhaGrams: 0, greensGrams: 2, lossPercent: 5 }).map(([id, value]) => [`settings.${id}`, value]),
   ...ingredients.flatMap((item) => [['price', item.price], ['packageSize', item.packageSize], ['yieldPercent', item.yieldPercent], ...(item.type === 'packaging' ? [['amount', item.amount]] : [])].map(([field, value]) => [`ingredients.${item.id}.${field}`, value])),
   ...fillings.flatMap((item) => Object.entries(item.parts).map(([id, value]) => [`recipes.${item.id}.${id}`, value])),
-  ['simulation.cheeseId', 'mucarela'], ['simulation.fillings', ['frango']],
+  ['simulation.cheeseId', 'mucarela'], ['simulation.fillings', ['frango']], [PIZZA_MODE_FIELD, false],
 ]);
 
 export function getSettings(values) {
@@ -117,7 +130,8 @@ export function ingredientValues(item, values) {
   const price = values[`ingredients.${item.id}.price`];
   const packageSize = values[`ingredients.${item.id}.packageSize`];
   const { scale } = purchaseMeasure(item.unit);
-  return { price, packageSize, yieldPercent: item.id === 'batata' ? 100 : values[`ingredients.${item.id}.yieldPercent`], unitPrice: price / packageSize * scale, amount: values[`ingredients.${item.id}.amount`] ?? item.amount };
+  const unitPrice = Number.isFinite(price) ? price / packageSize * scale : NaN;
+  return { price, packageSize, yieldPercent: item.id === 'batata' ? 100 : values[`ingredients.${item.id}.yieldPercent`], unitPrice, amount: values[`ingredients.${item.id}.amount`] ?? item.amount };
 }
 
 // Existing values keep their original package basis. Only an explicit unit-price
@@ -136,7 +150,7 @@ export function getIngredientPriceEdit(item, unitPrice, catalog = ingredients) {
 // Component costs use the same unit conversion and preparation yield as the
 // full portion, and exclude its reserve, packaging and operating costs.
 function costQuantities(values, quantities, catalog = ingredients) {
-  const entries = Object.entries(quantities);
+  const entries = Object.entries(quantities).filter(([, quantity]) => quantity !== 0);
   if (!entries.length) return 0;
   const rows = [];
   for (const [id, quantity] of entries) {
@@ -151,10 +165,11 @@ export function estimate(values, selection) {
   const settings = getSettings(values);
   const customIngredients = readCustomIngredients(values);
   const catalog = [...ingredients, ...customIngredients];
-  const selectedFillings = selection?.fillings ?? values['simulation.fillings'];
-  const cheese = selection?.cheese ?? values['simulation.cheeseId'];
+  const selectedMenu = selection ?? (values[PIZZA_MODE_FIELD] ? menuFlavors[0] : undefined);
+  const selectedFillings = selectedMenu?.fillings ?? values['simulation.fillings'];
+  const cheese = selectedMenu?.cheese ?? values['simulation.cheeseId'];
   const portions = distributeFillings(selectedFillings, settings.fillingTotalGrams);
-  const baseQuantities = { batata: settings.potatoGrams, oleo: settings.oilMl, sal: settings.saltGrams, 'batata-palha': selection?.palha ?? settings.palhaGrams, 'cheiro-verde': settings.greensGrams };
+  const baseQuantities = { batata: settings.potatoGrams, oleo: settings.oilMl, sal: settings.saltGrams, 'batata-palha': selectedMenu?.palha ?? settings.palhaGrams, 'cheiro-verde': settings.greensGrams };
   const quantities = { ...baseQuantities };
   const cheeseQuantities = cheese === 'misto'
     ? { mucarela: settings.cheeseGrams / 2, cheddar: settings.cheeseGrams / 2 }

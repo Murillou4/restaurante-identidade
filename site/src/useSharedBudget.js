@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CUSTOM_CATALOG_FIELD } from './budgetCatalog.js';
+import { CUSTOM_CATALOG_FIELD, isDeviceMenuField } from './budgetCatalog.js';
 
 const API = 'https://batataria-caderno-compartilhado.murillo-castro.chatgpt.site';
 const isCustomField = (path) => path === CUSTOM_CATALOG_FIELD || /^ingredients\.custom-|^recipes\.[^.]+\.custom-/.test(path);
@@ -130,7 +130,7 @@ export function useSharedBudget(roomId, defaults) {
     // The revision check still protects values added by the other appliance.
     // Older servers need no empty catalog field. Explicit catalog edits still
     // travel with their ingredient and recipe fields in the same request.
-    const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([path]) => path !== CUSTOM_CATALOG_FIELD && !Object.hasOwn(base.fields, path)));
+    const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([path]) => path !== CUSTOM_CATALOG_FIELD && !isDeviceMenuField(path) && !Object.hasOwn(base.fields, path)));
     const operation = failedOperation.current ?? { revision: base.revision, mutationId: crypto.randomUUID(), changes: { ...missingDefaults, ...draftRef.current } };
     const currentEpoch = epoch.current;
     inFlight.current = true;

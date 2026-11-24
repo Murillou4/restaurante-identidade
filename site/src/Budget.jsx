@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ArrowSquareOut, WarningCircle } from '@phosphor-icons/react';
-import { RESEARCH_DATE, ingredients, fillings, cheeses, presets, ingredientValues, getIngredientPriceEdit, purchaseMeasure, normalizeMeasureUnit, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD, estimate } from './budgetCatalog';
+import { RESEARCH_DATE, ingredients, fillings, menuFlavors, cheeses, presets, ingredientValues, getIngredientPriceEdit, purchaseMeasure, normalizeMeasureUnit, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD, PIZZA_MODE_FIELD, pizzaPurchaseIds, isDeviceMenuField, estimate } from './budgetCatalog';
 import { defaultFields } from './sharedBudgetDefaults';
 import { budgetHash, budgetTabs } from './navigation';
+import BudgetThumbnail from './BudgetThumbnail';
 import './budget.css';
 
 const money = (value) => Number.isFinite(value) ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—';
@@ -18,6 +19,7 @@ const isPackaging = (category) => category === 'packaging' || category === 'mate
 const emptyNewItem = { name: '', category: 'ingredient', unit: 'kg', price: '' };
 const MAX_PURCHASE_PRICE = 10000000;
 const MAX_PACKAGE_SIZE = 100000000;
+const menuFillingIds = new Set(menuFlavors.map(({ id }) => id));
 const ingredientById = Object.fromEntries(ingredients.map((item) => [item.id, item]));
 const operationFields = [
   { id: 'energyPerUnit', label: 'Energia por batata', unit: 'R$', help: 'Gás e eletricidade: uma hipótese até medir a produção.' },
@@ -100,7 +102,7 @@ function configurationErrors(values) {
   const catalog = [...ingredients, ...readCustomIngredients(values)];
   for (const item of catalog) {
     const data = ingredientValues(item, values);
-    if (!Number.isFinite(data.price) || data.price < 0) errors.push({ path: `ingredients.${item.id}.unitPrice`, message: `Confira o preço de ${item.name}.` });
+    if ((!Number.isFinite(data.price) || data.price < 0) && !(pizzaPurchaseIds.includes(item.id) && data.price === null)) errors.push({ path: `ingredients.${item.id}.unitPrice`, message: `Confira o preço de ${item.name}.` });
     if (!Number.isFinite(data.packageSize) || data.packageSize <= 0) errors.push({ path: `ingredients.${item.id}.unitPrice`, message: `Informe novamente o preço por ${purchaseLabels[purchaseMeasure(item.unit).unit]} de ${item.name}.` });
     if (!Number.isFinite(data.yieldPercent) || data.yieldPercent <= 0 || data.yieldPercent > 100) errors.push({ path: `ingredients.${item.id}.yieldPercent`, message: `Confira o rendimento de ${item.name}.` });
     if (item.type === 'packaging' && (!Number.isFinite(data.amount) || data.amount < 0)) errors.push({ path: `ingredients.${item.id}.amount`, message: `Confira a quantidade de ${item.name} por pedido.` });
@@ -173,9 +175,14 @@ function IngredientRow({ item, catalog, values, fieldProps, editMany, onMetadata
 
   return <article className="budget-ingredient" hidden={hidden}>
     <div className="budget-purchase-row">
-      <div>
-        <h3>{item.name}</h3>
-        {!item.custom && !edited && <small className="budget-purchase-status">{statuses[item.status]}</small>}
+      <div className="budget-purchase-info">
+        <BudgetThumbnail id={item.id} />
+        <div>
+          <h3>{item.name}</h3>
+          {pizzaPurchaseIds.includes(item.id)
+            ? <small className="budget-purchase-status">{data.price === null ? 'Informe o preço' : 'Neste aparelho'}</small>
+            : !item.custom && !edited && <small className="budget-purchase-status">{statuses[item.status]}</small>}
+        </div>
       </div>
       <NumberField {...fieldProps} path={`${path}.unitPrice`} label={`Preço por ${purchaseLabels[unit]}`} value={data.unitPrice} edit={editUnitPrice} prefix="R$" unit={`/ ${unit}`} context={item.name} currency hideLabel max={MAX_PURCHASE_PRICE} />
     </div>
@@ -193,7 +200,8 @@ function IngredientRow({ item, catalog, values, fieldProps, editMany, onMetadata
             : item.id !== 'batata' && <NumberField {...fieldProps} path={`${path}.yieldPercent`} label="Quanto sobra após o preparo" value={data.yieldPercent} unit="%" context={item.name} positive max={100} help="Use 100% se o ingrediente for aproveitado inteiro." />}
         </div>
         {item.custom ? <CustomItemOptions item={item} disabled={fieldProps.disabled} onMetadataChange={onMetadataChange} onRemove={onRemove} /> : <>
-          <p className="budget-source-note">{item.store} · {RESEARCH_DATE} · {money(item.price)} por {number(item.packageSize, 3)} {rawUnit}</p>
+          {item.store && <p className="budget-source-note">{item.store} · {RESEARCH_DATE} · {money(item.price)} por {number(item.packageSize, 3)} {rawUnit}</p>}
+          {pizzaPurchaseIds.includes(item.id) && <p className="budget-source-note">O preço deste item fica neste aparelho.</p>}
           {item.note && <p className="budget-source-note">{item.note}</p>}
           {item.source && <a className="budget-source-link" href={item.source} target="_blank" rel="noopener noreferrer">Ver fonte <ArrowSquareOut size={14} aria-hidden="true" /></a>}
         </>}
@@ -276,7 +284,7 @@ function alertPath(item, result) {
   return 'settings.chosenPrice';
 }
 
-export default function Budget({ sharedBudget, activeTab = 'simular', onTabChange }) {
+export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular', onTabChange }) {
   const tab = budgetTabs.some((item) => item.id === activeTab) ? activeTab : 'simular';
   const rootRef = useRef(null);
   const [pendingFocus, setPendingFocus] = useState(null);
@@ -285,15 +293,19 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
   const [showSaved, setShowSaved] = useState(false);
   const [newItem, setNewItem] = useState(emptyNewItem);
   const [newItemError, setNewItemError] = useState('');
-  const values = { ...defaultFields, ...sharedBudget.values };
+  const values = { ...defaultFields, ...sharedBudget.values, ...deviceMenu.fields };
   const customIngredients = readCustomIngredients(values);
   const catalog = [...ingredients, ...customIngredients];
-  const selected = Array.isArray(values['simulation.fillings']) ? values['simulation.fillings'] : [];
   const result = estimate(values);
-  const combination = [...selected.map((id) => fillings.find((item) => item.id === id)?.name), cheeses.find((item) => item.id === values['simulation.cheeseId'])?.name].filter(Boolean).join(' + ');
+  const selected = Array.isArray(result.selectedFillings) ? result.selectedFillings : [];
+  const pizza = values[PIZZA_MODE_FIELD];
+  const combination = [...selected.map((id) => menuFlavors.find((item) => item.id === id)?.name ?? fillings.find((item) => item.id === id)?.name), cheeses.find((item) => item.id === result.cheese)?.name].filter(Boolean).join(' + ');
+  const missingPrices = result.rows.filter(({ id, quantity }) => pizzaPurchaseIds.includes(id) && quantity > 0 && values[`ingredients.${id}.price`] === null);
+  const missingPaths = new Set(missingPrices.map(({ id }) => `ingredients.${id}.unitPrice`));
   const inputErrors = configurationErrors(values);
   const localErrors = Object.entries(fieldErrors).map(([path, message]) => ({ path, message }));
-  const allErrors = [...localErrors, ...inputErrors, ...result.alerts.filter((item) => item.severity !== 'warning').map((item) => ({ path: alertPath(item, result), message: item.message }))];
+  const calculationErrors = result.alerts.filter((item) => item.severity !== 'warning').map((item) => ({ path: alertPath(item, result), message: item.message })).filter((item) => !missingPaths.has(item.path));
+  const allErrors = [...localErrors, ...inputErrors, ...calculationErrors];
   const errors = allErrors.filter((item, index) => allErrors.findIndex((entry) => entry.path === item.path) === index);
   const warnings = [...new Set(result.alerts.filter((item) => item.severity === 'warning').map((item) => item.message))];
   const priceConflicts = new Set();
@@ -312,7 +324,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
     priceConflicts.add(id);
     return [{ path: `ingredients.${id}.unitPrice`, remote, local, unit: purchaseMeasure(item.unit).unit }];
   });
-  const invalid = !result.valid || errors.length > 0;
+  const invalid = errors.length > 0 || (!result.valid && missingPrices.length === 0);
   const connecting = sharedBudget.loading && !sharedBudget.cloud;
   const disabled = sharedBudget.saving || connecting;
   const canSave = !disabled && Boolean(sharedBudget.cloud) && sharedBudget.dirty > 0 && !invalid;
@@ -330,11 +342,25 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
       return next;
     });
   }, []);
-  const fieldProps = { edit: sharedBudget.edit, onValidity, disabled };
+  function editMany(changes) {
+    const deviceChanges = {};
+    const sharedChanges = {};
+    for (const [path, value] of Object.entries(changes)) {
+      (isDeviceMenuField(path) ? deviceChanges : sharedChanges)[path] = value;
+    }
+    if (Object.keys(deviceChanges).length) deviceMenu.edit(deviceChanges);
+    if (Object.keys(sharedChanges).length) sharedBudget.editMany(sharedChanges);
+  }
+
+  const fieldProps = { edit: (path, value) => editMany({ [path]: value }), onValidity, disabled };
   const settingField = (id, label, unit, props = {}) => <NumberField key={id} {...fieldProps} path={`settings.${id}`} label={label} value={values[`settings.${id}`]} unit={unit} {...props} />;
-  const shownCost = (cost) => invalid || connecting ? null : cost;
+  const shownCost = (cost) => invalid || connecting || missingPrices.length ? null : cost;
   const applyPreset = (preset) => {
-    sharedBudget.editMany({ 'simulation.fillings': [...preset.fillings], 'simulation.cheeseId': preset.cheese, 'settings.palhaGrams': preset.palha ?? 0 });
+    if (preset.id === 'pizza') deviceMenu.edit({ [PIZZA_MODE_FIELD]: true });
+    else {
+      if (pizza) deviceMenu.edit({ [PIZZA_MODE_FIELD]: false });
+      sharedBudget.editMany({ 'simulation.fillings': [...preset.fillings], 'simulation.cheeseId': preset.cheese, 'settings.palhaGrams': preset.palha ?? 0 });
+    }
     onTabChange?.('simular');
   };
   const chooseFilling = (id) => {
@@ -358,7 +384,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
     }
     const next = customIngredients.map((item) => item.id === id ? { ...item, ...patch } : item);
     if (patch.type === 'food') {
-      for (const filling of fillings) {
+      for (const filling of fillings.filter(({ id: fillingId }) => fillingId !== 'pizza')) {
         const recipePath = 'recipes.' + filling.id + '.' + id;
         if (!Object.hasOwn(values, recipePath)) changes[recipePath] = 0;
       }
@@ -390,7 +416,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
       [`ingredients.${id}.yieldPercent`]: item.yieldPercent,
       [`ingredients.${id}.amount`]: item.amount,
     };
-    if (item.type === 'food') for (const filling of fillings) changes[`recipes.${filling.id}.${id}`] = 0;
+    if (item.type === 'food') for (const filling of fillings.filter(({ id }) => id !== 'pizza')) changes[`recipes.${filling.id}.${id}`] = 0;
     sharedBudget.editMany(changes);
     setNewItem(emptyNewItem);
     setNewItemError('');
@@ -407,8 +433,8 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
       if (ancestor.tagName === 'DETAILS') ancestor.open = true;
     }
   };
-  const goToField = (path) => {
-    if (path.startsWith('ingredients.')) setQuery('');
+  const goToField = (path, search = '') => {
+    if (path.startsWith('ingredients.')) setQuery(search);
     onTabChange?.(fieldTab(path));
     setPendingFocus(path);
   };
@@ -430,6 +456,22 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
     const detail = event.target;
     if (detail.tagName === 'DETAILS' && !detail.open && errors.some(({ path }) => detail.contains(findField(path)))) detail.open = true;
   };
+  function recipeDetails(filling) {
+    const flavor = menuFlavors.find(({ id }) => id === filling.id);
+    const customIds = customIngredients.filter((item) => item.type === 'food' && Object.hasOwn(values, `recipes.${filling.id}.${item.id}`)).map((item) => item.id);
+    const partIds = [...Object.keys(filling.parts), ...customIds];
+    return <details key={filling.id} className="budget-disclosure budget-recipe">
+      <summary>{flavor?.name ?? filling.name}</summary>
+      {flavor && <p className="budget-help">{flavor.assembly}</p>}
+      {filling.id === 'strogonoff' && <p className="budget-help">Frango em molho encorpado. A anotação de preparo também menciona bacon.</p>}
+      <p className="budget-help">Proporções estimadas para calcular o custo. Ajuste com as medidas da receita.</p>
+      {filling.id === 'pizza' && <p className="budget-help">As proporções da Pizza e os preços de presunto e orégano ficam neste aparelho.</p>}
+      <div className="budget-recipe-inputs">{partIds.map((id) => (
+        <NumberField key={id} {...fieldProps} path={`recipes.${filling.id}.${id}`} label={catalog.find((item) => item.id === id)?.name ?? id} value={values[`recipes.${filling.id}.${id}`]} unit="partes" context={flavor?.name ?? filling.name} />
+      ))}</div>
+    </details>;
+  }
+
   const saveStatus = sharedBudget.saving ? 'Salvando…'
     : invalid ? 'Corrija os campos sinalizados'
     : sharedBudget.cloud ? 'Alterações sem salvar' : 'Aguardando conexão';
@@ -452,6 +494,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
         {!sharedBudget.error && sharedBudget.readError && <button type="button" className="text-link" onClick={sharedBudget.refresh} disabled={disabled}>Tentar carregar de novo</button>}
       </div>
     </div>}
+    {deviceMenu.error && <p className="budget-alert error" role="alert">{deviceMenu.error}</p>}
     {conflicts.length > 0 && <section className="budget-conflicts" aria-labelledby="budget-conflict-title">
       <h2 id="budget-conflict-title">Mudanças em outro aparelho</h2>
       <div className="budget-table-scroll">
@@ -472,11 +515,21 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
     </div>}
 
     <div hidden={tab !== 'simular'}>
-      <ResultPanel result={result} values={values} fieldProps={fieldProps} unavailable={invalid || connecting} warnings={warnings}>
+      {missingPrices.length > 0 && <div className="budget-missing-prices">
+        <p>Para calcular a Pizza, informe os preços abaixo.</p>
+        <div>{missingPrices.map(({ id, name }) => <button key={id} type="button" className="text-link" onClick={() => goToField(`ingredients.${id}.unitPrice`, name)}>{name}</button>)}</div>
+      </div>}
+      <ResultPanel result={result} values={values} fieldProps={fieldProps} unavailable={invalid || connecting || missingPrices.length > 0} warnings={warnings}>
         <section className="budget-combination" aria-labelledby="budget-combination">
-          <h2 id="budget-combination">Batata atual</h2>
-          <p>{combination}</p>
-          <details className="budget-disclosure">
+          <h2 id="budget-combination">Sabores do cartaz</h2>
+          <div className="budget-flavors">
+            {menuFlavors.map((flavor) => <button key={flavor.id} type="button" disabled={disabled} aria-pressed={selected.length === 1 && selected[0] === flavor.id} onClick={() => applyPreset(flavor)}>
+              <BudgetThumbnail id={flavor.id} flavor />
+              <span>{flavor.name}</span>
+            </button>)}
+          </div>
+          <p><strong>Batata atual</strong> {combination}</p>
+          {!pizza && <details className="budget-disclosure">
             <summary>Mudar recheios e queijo</summary>
             <div className="budget-field budget-cheese">
               <label htmlFor="budget-cheese">Queijo</label>
@@ -488,18 +541,18 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
               <legend>Recheios</legend>
               <p className="budget-help">{selected.length === 3 ? 'Desmarque um recheio para trocar.' : 'Escolha até três recheios.'}</p>
               <div className="budget-filling-list">
-                {fillings.map((item) => <label key={item.id} className={`budget-filling ${selected.includes(item.id) ? 'selected' : ''}`}>
+                {fillings.filter((item) => (menuFillingIds.has(item.id) && item.id !== 'pizza') || selected.includes(item.id)).map((item) => <label key={item.id} className={`budget-filling ${selected.includes(item.id) ? 'selected' : ''}`}>
                   <input type="checkbox" name="simulation.fillings" data-field-path="simulation.fillings" checked={selected.includes(item.id)} disabled={disabled || (selected.includes(item.id) ? selected.length === 1 : selected.length >= 3)} onChange={() => chooseFilling(item.id)} />
                   <span>{item.name}{item.id === 'champignon' && <small className="budget-stock-note">Sem estoque na fonte</small>}</span>
                 </label>)}
               </div>
             </fieldset>
-          </details>
+          </details>}
           <details className="budget-disclosure">
             <summary>Ajustar porções</summary>
             <div className="budget-form-grid">
               {settingField('potatoGrams', 'Batata crua', 'g', { positive: true, cost: shownCost(result.costs.base.batata) })}
-              {settingField('cheeseGrams', 'Queijo', 'g', { disabled: disabled || values['simulation.cheeseId'] === 'nenhum', cost: shownCost(result.costs.cheese) })}
+              {settingField('cheeseGrams', 'Queijo', 'g', { disabled: disabled || result.cheese === 'nenhum', cost: shownCost(result.costs.cheese) })}
               {settingField('fillingTotalGrams', 'Total de recheio', 'g', { positive: true, cost: shownCost(result.costs.fillingsTotal) })}
               {settingField('oilMl', 'Óleo', 'ml', { cost: shownCost(result.costs.base.oleo) })}
               {settingField('saltGrams', 'Sal', 'g', { cost: shownCost(result.costs.base.sal) })}
@@ -574,7 +627,7 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
       {['food', 'packaging'].map((type) => <section className="budget-cost-group" key={type} hidden={!filteredIngredients.some((item) => item.type === type)}>
         <h2>{type === 'food' ? 'Ingredientes e bebidas' : 'Embalagens e materiais'}</h2>
         {catalog.filter((item) => item.type === type).map((item) =>
-          <IngredientRow key={item.id} item={item} catalog={catalog} values={values} fieldProps={fieldProps} editMany={sharedBudget.editMany} onMetadataChange={updateCustomMetadata} onRemove={removeCustomIngredient} hidden={!visibleIngredientIds.has(item.id)} />
+          <IngredientRow key={item.id} item={item} catalog={catalog} values={values} fieldProps={fieldProps} editMany={editMany} onMetadataChange={updateCustomMetadata} onRemove={removeCustomIngredient} hidden={!visibleIngredientIds.has(item.id)} />
         )}
       </section>)}
       {!filteredIngredients.length && <div className="budget-empty">
@@ -584,23 +637,19 @@ export default function Budget({ sharedBudget, activeTab = 'simular', onTabChang
     </div>
 
     <div className="budget-config-editor" hidden={tab !== 'receitas'}>
-      <details className="budget-disclosure">
-        <summary>Comparar sabores</summary>
-        <ComparisonTable values={values} apply={applyPreset} disabled={disabled} invalid={invalid || connecting} />
-      </details>
       <div className="budget-section-heading">
-        <h2>Composição dos recheios</h2>
-        <p>As partes definem a proporção dos ingredientes. Se o total for 100 partes, 50 partes correspondem à metade do recheio.</p>
+        <h2>Sabores do cartaz</h2>
+        <p>A montagem começa com batata com casca, um pouco de manteiga e uma camada de requeijão.</p>
       </div>
-      {fillings.map((filling) => {
-        const customIds = customIngredients.filter((item) => item.type === 'food' && Object.hasOwn(values, `recipes.${filling.id}.${item.id}`)).map((item) => item.id);
-        const partIds = [...Object.keys(filling.parts), ...customIds];
-        const total = partIds.reduce((sum, id) => sum + values[`recipes.${filling.id}.${id}`], 0);
-        return <details key={filling.id} className="budget-disclosure budget-recipe">
-          <summary>{filling.name}<span>{number(total)} partes</span></summary>
-          <div className="budget-recipe-inputs">{partIds.map((id) => <NumberField key={id} {...fieldProps} path={`recipes.${filling.id}.${id}`} label={catalog.find((item) => item.id === id)?.name ?? id} value={values[`recipes.${filling.id}.${id}`]} unit="partes" context={filling.name} />)}</div>
-        </details>;
-      })}
+      {menuFlavors.map(({ id }) => recipeDetails(fillings.find((filling) => filling.id === id)))}
+      <details className="budget-disclosure budget-advanced">
+        <summary>Receitas de teste</summary>
+        {fillings.filter(({ id }) => !menuFillingIds.has(id)).map(recipeDetails)}
+        <details className="budget-disclosure">
+          <summary>Comparar sabores</summary>
+          <ComparisonTable values={values} apply={applyPreset} disabled={disabled} invalid={invalid || connecting} />
+        </details>
+      </details>
     </div>
 
     <div className="budget-config-editor" hidden={tab !== 'operacao'}>

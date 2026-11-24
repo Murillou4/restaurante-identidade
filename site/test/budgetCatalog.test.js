@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultFields, estimate, getIngredientPriceEdit, ingredientValues, ingredients, presets, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD, normalizeMeasureUnit } from '../src/budgetCatalog.js';
+import { defaultFields, estimate, getIngredientPriceEdit, ingredientValues, ingredients, menuFlavors, PIZZA_MODE_FIELD, presets, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD, normalizeMeasureUnit } from '../src/budgetCatalog.js';
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
 test('cesta usa peso cru comprado da batata e não aumenta compra por perda do forno', () => {
@@ -196,7 +196,10 @@ test('salvar e reabrir preços normalizados mantém os custos e aceita caderno c
   close(after.suggestedPrice, before.suggestedPrice);
   for (const item of ingredients) {
     assert.equal(reopened[`ingredients.${item.id}.packageSize`], item.unit === 'un' ? 1 : 1000);
-    close(ingredientValues(item, reopened).unitPrice, ingredientValues(item, defaultFields).unitPrice);
+    const previous = ingredientValues(item, defaultFields).unitPrice;
+    const current = ingredientValues(item, reopened).unitPrice;
+    if (Number.isFinite(previous)) close(current, previous);
+    else assert.ok(Number.isNaN(current));
   }
   const potato = ingredients.find((item) => item.id === 'batata');
   const mixed = JSON.parse(JSON.stringify({ ...defaultFields, ...getIngredientPriceEdit(potato, 5.99) }));
@@ -207,6 +210,21 @@ test('salvar e reabrir preços normalizados mantém os custos e aceita caderno c
   close(estimate(mixed).costs.base.batata, 2.6955);
   close(estimate(mixed).costs.cheese, before.costs.cheese);
   close(estimate(mixed).packagingCost, before.packagingCost);
+});
+
+test('o sabor Pizza usa presunto, orégano e muçarela e exige os preços da compra para calcular', () => {
+  assert.deepEqual(menuFlavors.map(({ name }) => name), ['Pizza', 'Bacon', 'Calabresa', 'Frango']);
+  const values = { ...defaultFields, [PIZZA_MODE_FIELD]: true };
+  const pending = estimate(values);
+  assert.equal(pending.suggestedPrice, null);
+  assert.deepEqual(pending.rows.filter(({ unitPrice }) => unitPrice === null).map(({ id }) => id), ['presunto', 'oregano']);
+  const complete = estimate({ ...values, 'ingredients.presunto.price': 29.9, 'ingredients.oregano.price': 80 });
+  assert.ok(complete.valid);
+  assert.ok(complete.suggestedPrice > 0);
+  close(complete.rows.find(({ id }) => id === 'presunto').quantity, 102);
+  close(complete.rows.find(({ id }) => id === 'oregano').quantity, 0.75);
+  close(complete.rows.find(({ id }) => id === 'mucarela').quantity, 40);
+  assert.equal(complete.rows.some(({ id }) => id === 'frango'), false);
 });
 
 test('edição de preço aceita zero e limite do backend sem arredondar e rejeita números inválidos', () => {
