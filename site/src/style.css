@@ -17,7 +17,19 @@
 
 :root { font-family: var(--font-sans); color: var(--color-ink); background: var(--color-paper); font-synthesis: none; }
 html { scroll-behavior: smooth; scroll-padding-top: 105px; }
-body { margin: 0; min-width: 320px; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(circle at 2px 3px, rgb(95 48 24 / 8%) .5px, transparent 1px),
+    radial-gradient(circle at 4px 5px, rgb(255 239 206 / 17%) .5px, transparent 1px),
+    radial-gradient(ellipse 850px 510px at 58% 130px, rgb(252 215 166 / 42%), transparent 82%),
+    radial-gradient(ellipse 580px 430px at 0 370px, rgb(149 70 42 / 18%), transparent 88%),
+    linear-gradient(152deg, #e3bb97, var(--color-paper) 810px);
+  background-size: 11px 13px, 17px 19px, auto, auto, auto;
+}
 button, a { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
 button, a { transition: color .18s ease, background-color .18s ease, transform .18s ease, border-color .18s ease; }

@@ -47,7 +47,10 @@ function App() {
     <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
     <header className="workspace-header">
       <div className="page-width workspace-header-inner">
-        <span className="workspace-brand">Nossa batataria</span>
+        <span className="workspace-brand">
+          <img className="workspace-brand-mark" src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="34" height="34" />
+          <span>Nossa batataria</span>
+        </span>
         <nav className="workspace-nav" aria-label="Preços">
           {budgetTabs.slice(0, 2).map(({ id, name }) => (
             <a key={id} href={budgetHash(id)} aria-current={route.tab === id ? 'page' : undefined}>{name}</a>
