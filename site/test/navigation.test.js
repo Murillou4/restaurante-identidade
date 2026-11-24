@@ -2,16 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readRoute, budgetHash } from '../src/navigation.js';
 
-test('a entrada do caderno apresenta a visão geral, sem iniciar uma simulação por engano', () => {
-  assert.deepEqual(readRoute(), { page: 'inicio' });
-  assert.deepEqual(readRoute('#inicio'), { page: 'inicio' });
-  assert.deepEqual(readRoute('#pagina-antiga-desconhecida'), { page: 'inicio' });
+test('a entrada do caderno e as páginas removidas abrem o preço de venda', () => {
+  const sale = { page: 'orcamento', tab: 'simular' };
+  for (const hash of [undefined, '#inicio', '#planejamento', '#orcamento', '#pagina-antiga-desconhecida', '#constructor']) {
+    assert.deepEqual(readRoute(hash), sale);
+  }
 });
 
-test('links principais antigos continuam abrindo orçamento, marca e plano de abertura', () => {
-  assert.deepEqual(readRoute('#orcamento'), { page: 'orcamento', tab: 'simular' });
+test('o link da marca continua abrindo a galeria', () => {
   assert.deepEqual(readRoute('#galeria'), { page: 'galeria' });
-  assert.deepEqual(readRoute('#planejamento'), { page: 'planejamento' });
 });
 
 test('atalhos do orçamento podem ser compartilhados e reabertos na ferramenta correta', () => {
@@ -20,13 +19,16 @@ test('atalhos do orçamento podem ser compartilhados e reabertos na ferramenta c
     assert.deepEqual(readRoute(`#orcamento-${tab}`), { page: 'orcamento', tab });
   }
   assert.deepEqual(readRoute('#orcamento-canais'), { page: 'orcamento', tab: 'operacao' });
-  assert.deepEqual(readRoute('#orcamento-inexistente'), { page: 'inicio' });
+  assert.deepEqual(readRoute('#orcamento-inexistente'), { page: 'orcamento', tab: 'simular' });
 });
 
 test('aliases de marca abrem a mesma seção que as âncoras existentes', () => {
-  for (const [legacy, anchor] of [['nomes', 'gallery-nomes'], ['logos', 'gallery-logos'], ['favoritos', 'gallery-favoritos']]) {
+  for (const [legacy, anchor] of [['nomes', 'gallery-nomes'], ['logos', 'gallery-logos']]) {
     const destination = { page: 'galeria', anchor };
     assert.deepEqual(readRoute(`#${legacy}`), destination);
     assert.deepEqual(readRoute(`#${anchor}`), destination);
+  }
+  for (const hash of ['#favoritos', '#gallery-favoritos', '#mural']) {
+    assert.deepEqual(readRoute(hash), { page: 'galeria', anchor: 'gallery-nomes' });
   }
 });

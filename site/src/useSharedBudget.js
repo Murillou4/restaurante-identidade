@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { CUSTOM_CATALOG_FIELD } from './budgetCatalog.js';
 
 const API = 'https://batataria-caderno-compartilhado.murillo-castro.chatgpt.site';
+const isCustomField = (path) => path === CUSTOM_CATALOG_FIELD || /^ingredients\.custom-|^recipes\.[^.]+\.custom-/.test(path);
+
 export function useSharedBudget(roomId, defaults) {
   const [cloud, setCloud] = useState(null);
   const [draft, setDraft] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [readError, setReadError] = useState('');
   const [notice, setNotice] = useState('');
   const [conflicts, setConflicts] = useState([]);
+  const [customRejected, setCustomRejected] = useState(false);
   const cloudRef = useRef(null);
   const draftRef = useRef({});
   const mounted = useRef(false);
@@ -28,6 +33,7 @@ export function useSharedBudget(roomId, defaults) {
     try {
       const response = await fetch(`${API}/api/rooms/${roomId}/budget`, { method: body ? 'PUT' : 'GET', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, signal: controller.signal, credentials: 'omit', mode: 'cors', cache: 'no-store' });
       const value = await response.json();
+      if (body && response.status === 400) return { rejected: true };
       if ((!response.ok && response.status !== 409) || value.roomId !== roomId || !Number.isSafeInteger(value.revision) || !value.fields || Array.isArray(value.fields)) throw new Error('Resposta inválida');
       return { conflict: response.status === 409, value };
     } finally { window.clearTimeout(timeout); controllers.current.delete(controller); }
@@ -46,9 +52,12 @@ export function useSharedBudget(roomId, defaults) {
       if (!mounted.current || currentEpoch !== epoch.current) return;
       apply(value);
       setLoading(false);
-      if (!failedOperation.current && !conflictReview.current) setError('');
+      setReadError('');
     } catch {
-      if (mounted.current && currentEpoch === epoch.current) { setLoading(false); setError('Não foi possível atualizar o orçamento. Suas edições continuam nesta aba; tente novamente.'); }
+      if (mounted.current && currentEpoch === epoch.current) {
+        setLoading(false);
+        setReadError('Falha ao carregar o caderno. Suas edições continuam nesta aba.');
+      }
     }
   }, [request, apply]);
 
@@ -99,24 +108,51 @@ export function useSharedBudget(roomId, defaults) {
     failedOperation.current = null;
     if (!remainingConflicts.length) { conflictReview.current = false; setError(''); }
     setNotice('');
+    setCustomRejected(false);
   }, [defaults]);
+
+  const discardCustomEdits = useCallback(() => {
+    const next = Object.fromEntries(Object.entries(draftRef.current).filter(([path]) => !isCustomField(path)));
+    draftRef.current = next;
+    setDraft(next);
+    if (!Object.keys(next).length) draftBase.current = null;
+    conflictsRef.current = conflictsRef.current.filter(({ path }) => !isCustomField(path));
+    setConflicts(conflictsRef.current);
+    conflictReview.current = conflictsRef.current.length > 0;
+    setCustomRejected(false);
+    setError('');
+  }, []);
 
   const save = useCallback(async () => {
     if (!cloudRef.current || inFlight.current || !Object.keys(draftRef.current).length) return false;
     const base = draftBase.current ?? cloudRef.current;
     // Freeze newly introduced defaults when an older caderno is saved, too.
     // The revision check still protects values added by the other appliance.
-    const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([path]) => !Object.hasOwn(base.fields, path)));
+    // Older servers need no empty catalog field. Explicit catalog edits still
+    // travel with their ingredient and recipe fields in the same request.
+    const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([path]) => path !== CUSTOM_CATALOG_FIELD && !Object.hasOwn(base.fields, path)));
     const operation = failedOperation.current ?? { revision: base.revision, mutationId: crypto.randomUUID(), changes: { ...missingDefaults, ...draftRef.current } };
     const currentEpoch = epoch.current;
     inFlight.current = true;
     setSaving(true);
     setError('');
     setNotice('');
+    setCustomRejected(false);
     try {
-      const { value, conflict } = await request(operation);
+      const { value, conflict, rejected } = await request(operation);
       if (!mounted.current || currentEpoch !== epoch.current) return false;
+      if (rejected) {
+        failedOperation.current = null;
+        uncertain.current = false;
+        const hasCustomEdits = Object.keys(operation.changes).some(isCustomField);
+        setCustomRejected(hasCustomEdits);
+        setError(hasCustomEdits
+          ? 'O caderno recusou as alterações. Se precisar salvar os outros preços, desfaça as edições dos itens adicionados.'
+          : 'O caderno recusou estes valores. Confira os campos que você alterou.');
+        return false;
+      }
       apply(value);
+      setReadError('');
       const confirmed = Object.entries(operation.changes).every(([path, v]) => JSON.stringify(value.fields[path]) === JSON.stringify(v));
       if (conflict && !confirmed) {
         conflictReview.current = true;
@@ -151,5 +187,11 @@ export function useSharedBudget(roomId, defaults) {
     } finally { inFlight.current = false; if (mounted.current && currentEpoch === epoch.current) setSaving(false); }
   }, [request, apply, defaults]);
 
-  return { values: { ...defaults, ...cloud?.fields, ...draft }, cloud, loading, saving, error, notice, conflicts, dirty: Object.keys(draft).length, edit: (path, value) => editMany({ [path]: value }), editMany, save, refresh };
+  return {
+    values: { ...defaults, ...cloud?.fields, ...draft },
+    cloud, loading, saving, readError, error, notice, conflicts, customRejected,
+    dirty: Object.keys(draft).length,
+    edit: (path, value) => editMany({ [path]: value }),
+    editMany, save, refresh, discardCustomEdits,
+  };
 }

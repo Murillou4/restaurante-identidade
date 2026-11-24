@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { budgetHash } from './navigation.js';
 import { names, references } from './data';
 
 const API_ORIGIN = 'https://batataria-caderno-compartilhado.murillo-castro.chatgpt.site';
@@ -261,7 +262,7 @@ export function useSharedChoices() {
     const url = new URL(window.location.href);
     url.searchParams.set('caderno', roomId);
     url.searchParams.set('pessoa', 'mae');
-    url.hash = 'inicio';
+    url.hash = budgetHash('simular');
     return url.href;
   })();
 

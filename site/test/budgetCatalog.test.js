@@ -233,6 +233,24 @@ test('edição só aceita ingredientes e unidades do catálogo, sem criar caminh
   assert.equal({}.polluted, undefined);
 });
 
+test('edição por unidade respeita a medida que o caderno já usa para itens personalizados', () => {
+  const measurements = [['g', 1000], ['kg', 1], ['ml', 1000], ['l', 1], ['un', 1]];
+  const items = measurements.map(([unit], index) => ({
+    id: `custom-abcdef0${index}`,
+    name: `Item em ${unit}`,
+    unit,
+    type: 'food',
+  }));
+  const values = { [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients(items) };
+  const catalog = readCustomIngredients(values);
+  assert.equal(catalog.length, measurements.length);
+  for (const [index, item] of catalog.entries()) {
+    const changes = getIngredientPriceEdit(item, 6.125, catalog);
+    assert.equal(changes[`ingredients.${item.id}.packageSize`], measurements[index][1]);
+    assert.equal(ingredientValues(item, { ...values, ...changes }).unitPrice, 6.125);
+  }
+});
+
 
 test('preço de compra e quantidade da embalagem são editáveis sem alterar o catálogo base', () => {
   const item = ingredients.find((entry) => entry.id === 'batata');

@@ -1,28 +1,28 @@
 # Orçamento da batata recheada
 
-**Atualizado em 23/11/2026. Uso interno de mãe e filho.** O caderno permite comparar porções, ingredientes e preços para planejar a produção caseira por encomenda, com retirada no local em Senador Canedo/GO. As receitas e os custos iniciais são hipóteses editáveis; precisam de teste de cozinha e conferência das compras antes de aprovar cardápio e preço.
+**Atualizado em 24/11/2026. Uso interno de mãe e filho.** O caderno permite comparar porções, ingredientes e preços para planejar a produção caseira por encomenda, com retirada no local em Senador Canedo/GO. As receitas e os custos iniciais são hipóteses editáveis. Testem na cozinha e confiram os preços das compras antes de fechar o cardápio.
 
 A referência de implementação é o [catálogo](../site/src/budgetCatalog.js), com os cálculos em [budgetMath.js](../site/src/budgetMath.js). As fontes públicas e seus limites estão em [PRECOS-REFERENCIA.md](PRECOS-REFERENCIA.md), com pesquisa de **06/10/2026**.
 
 ## Como usar o caderno juntos
 
-1. Abrir o mesmo link completo do caderno nos dois aparelhos. A Visão geral explica o projeto e oferece **Testar uma batata**. O orçamento é único para vocês dois; não precisa escolher uma pessoa.
-2. Em **Simular preço**, comparar uma composição: queijo e de um a três recheios. Os campos mostram o custo dos ingredientes da quantidade escolhida; os recheios selecionados mostram peso e custo. Abrir o bloco de quantidades para comprar para conferir cada ingrediente.
-3. Em **Cadastro de preços**, informar o **preço pago** e a **quantidade que veio na embalagem**. Exemplo: pacote de 5 kg por R$ 25,00 — informar R$ 25,00 e 5.000 g; o sistema converte para R$ 5,00/kg. Também é possível adicionar ingredientes, bebidas, embalagens e materiais, editar nome/categoria/unidade e remover itens personalizados. Ingredientes novos aparecem na composição das receitas com zero partes até vocês definirem a quantidade. Ajustar o rendimento aqui e a composição em **Recheios e sabores** com os testes reais.
-4. Informar o preço que pretendem praticar em **Simular preço** e o volume mensal em **Despesas e meta**. Na mesma área, registrar os impostos e a taxa efetiva da maquininha ou do meio de pagamento, quando houver. Custos fixos, custos por batata, perdas e margem também ficam em Despesas e meta.
-5. Salvar e aguardar a confirmação **“Orçamento salvo para vocês dois.”** No outro aparelho, conferir a mesma composição e os valores confirmados.
+1. Abrir o mesmo link completo do caderno nos dois aparelhos. A entrada mostra o **Preço de venda**, o custo e a sobra por batata.
+2. Em **Preços de compra**, informar o valor por quilo, litro ou unidade. Para um pacote de 5 kg por R$ 25,00, abrir **Calcular pelo pacote** e preencher os dois valores. O campo principal mostra R$ 5,00/kg. A lista também permite cadastrar itens e ajustar quanto se aproveita após o preparo.
+3. Em **Preço de venda**, informar o **Preço que quer cobrar**. Abrir **Mudar recheios e queijo**, **Ajustar porções** ou **Ver quantidades para comprar** quando precisar.
+4. Abrir **Receitas e despesas** para ajustar a composição dos recheios, os custos fixos, o volume mensal e as demais despesas.
+5. Clicar em **Salvar** e aguardar **Salvo**. O outro aparelho pode reabrir o link para conferir os mesmos valores.
 
 As edições de preço, quantidade de compra e composição recalculam a simulação na aba atual; tornam-se compartilhadas depois da resposta do servidor. Em uma falha de salvamento, as edições continuam na aba e podem ser reenviadas. Se outro aparelho salvar primeiro, o caderno carrega os valores novos e preserva o rascunho para revisão antes de salvar novamente.
 
-Os cadernos anteriores continuam com o mesmo custo: preços de embalagens pesquisadas são convertidos para kg, litro ou unidade na leitura, sem arredondar o cálculo ou alterar os valores salvos. Só editar um preço grava sua base normalizada (1000 g/ml ou uma unidade), com preço e base enviados juntos. As fontes e os detalhes dos pacotes originais ficam em **Referência da pesquisa**. Se dois aparelhos editarem o preço, a revisão mostra o conflito pelo mesmo kg, litro ou unidade.
+Os cadernos anteriores mantêm os valores salvos. Ao digitar o preço por quilo, litro ou unidade, o caderno grava o preço junto de uma quantidade equivalente à medida escolhida. Ao editar pelo pacote, grava o preço pago e o tamanho do pacote. O cálculo usa a precisão dos valores salvos. As fontes e os detalhes dos pacotes originais ficam dentro de **Calcular pelo pacote**.
 
-O seletor **Eu (filho) / Mãe** fica somente em Marca e identifica quem marca os favoritos de nome e logo. Trocar de ferramenta ou área preserva as edições locais, incluindo campos que precisam de correção. Favoritos continuam sendo preferências; receitas e preços salvos continuam sendo simulações, sem aprovação automática.
+O seletor **Mãe / Filho** em **Marca** identifica quem marca os favoritos nas opções de nome e logo. Trocar de ferramenta ou área preserva as edições locais, incluindo campos que precisam de correção.
 
 ## Forma de venda e retirada
 
 A produção acontece em casa e as batatas são preparadas por encomenda. O cliente combina o pedido e retira no local, em Senador Canedo/GO. O orçamento não considera entrega ao cliente, comissão de plataforma, mensalidades de aplicativo, cupons ou subsídios.
 
-A taxa de pagamento é um percentual opcional em **Despesas e meta**. Preencha somente a tarifa efetivamente cobrada pela maquininha ou pelo meio de pagamento usado. Pix e dinheiro podem ficar em 0% quando não houver cobrança. Impostos continuam sendo informados separadamente.
+A taxa de pagamento é um percentual opcional em **Despesas**. Preencha somente a tarifa efetivamente cobrada pela maquininha ou pelo meio de pagamento usado. Pix e dinheiro podem ficar em 0% quando não houver cobrança. Impostos continuam sendo informados separadamente.
 
 O frontend se conecta a uma API em um **backend separado**, com o orçamento associado ao mesmo identificador de caderno do link. Quem tem esse link pode acessar e editar o caderno. O salvamento de um orçamento registra uma simulação de planejamento; a aprovação da receita e do preço deve ser combinada pelos dois.
 

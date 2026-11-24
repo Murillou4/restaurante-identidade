@@ -47,6 +47,18 @@ export function normalizeMeasureUnit(unit) {
   return unit === 'un' ? 'un' : null;
 }
 
+const purchaseMeasures = {
+  g: { unit: 'kg', scale: 1000 },
+  kg: { unit: 'kg', scale: 1 },
+  ml: { unit: 'L', scale: 1000 },
+  l: { unit: 'L', scale: 1 },
+  un: { unit: 'un', scale: 1 },
+};
+
+export function purchaseMeasure(unit) {
+  return Object.hasOwn(purchaseMeasures, unit) ? purchaseMeasures[unit] : undefined;
+}
+
 export function readCustomIngredients(values = {}) {
   let parsed;
   try { parsed = JSON.parse(values[CUSTOM_CATALOG_FIELD] || '[]'); } catch { return []; }
@@ -104,19 +116,20 @@ export function getSettings(values) {
 export function ingredientValues(item, values) {
   const price = values[`ingredients.${item.id}.price`];
   const packageSize = values[`ingredients.${item.id}.packageSize`];
-  const scale = item.unit === 'g' || item.unit === 'ml' ? 1000 : 1;
+  const { scale } = purchaseMeasure(item.unit);
   return { price, packageSize, yieldPercent: item.id === 'batata' ? 100 : values[`ingredients.${item.id}.yieldPercent`], unitPrice: price / packageSize * scale, amount: values[`ingredients.${item.id}.amount`] ?? item.amount };
 }
 
 // Existing values keep their original package basis. Only an explicit unit-price
 // edit creates this two-field patch for one atomic sharedBudget.editMany call.
-// Prices are R$/kg for g, R$/L for ml and R$/unit for un; no rounding is applied.
-export function getIngredientPriceEdit(item, unitPrice) {
-  const catalogItem = ingredients.find((known) => known.id === item?.id);
-  if (!catalogItem || item.unit !== catalogItem.unit || !Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > 10000000) return null;
+// Prices use the purchase unit; the stored quantity uses the item's catalog unit.
+export function getIngredientPriceEdit(item, unitPrice, catalog = ingredients) {
+  const catalogItem = catalog.find((known) => known.id === item?.id);
+  const measure = purchaseMeasure(catalogItem?.unit);
+  if (!measure || item.unit !== catalogItem.unit || !Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > 10000000) return null;
   return {
     [`ingredients.${catalogItem.id}.price`]: unitPrice,
-    [`ingredients.${catalogItem.id}.packageSize`]: catalogItem.unit === 'un' ? 1 : 1000,
+    [`ingredients.${catalogItem.id}.packageSize`]: measure.scale,
   };
 }
 

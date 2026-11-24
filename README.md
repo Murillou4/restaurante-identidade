@@ -1,67 +1,41 @@
 # Nossa batataria
 
-Caderno interno para mãe e filho organizarem a produção caseira de batatas recheadas, por encomenda e com retirada no local em Senador Canedo, Goiás. Organiza o projeto em **Visão geral, Orçamento, Marca e Plano de abertura**. A página não recebe pedidos nem vende produtos.
+Caderno para acompanhar o custo e o preço de venda das batatas recheadas feitas por encomenda em Senador Canedo, Goiás.
 
-O negócio está em definição. Os quatro nomes são sugestões. As dez logos são referências de outras marcas, com links para as respectivas fontes.
+## Usar o caderno
+
+- **Preço de venda** mostra o custo, o preço sugerido e a sobra ou o prejuízo por batata. Recheios, queijo, porções, custos e quantidades de compra podem ser consultados ou ajustados ali.
+- **Preços de compra** aceita o preço por quilo, litro ou unidade. **Calcular pelo pacote** usa o preço pago e a quantidade comprada. A lista também permite cadastrar ingredientes, bebidas, embalagens e materiais.
+- **Receitas e despesas** reúne a composição dos recheios, os custos fixos, as taxas e a meta de venda.
+- **Marca** reúne sugestões de nome e referências de logo. Escolha **Mãe** ou **Filho** para marcar favoritos nas próprias opções.
+
+Em qualquer tela, use **Copiar link do caderno** no rodapé para acessar os mesmos dados em outro aparelho. O parâmetro `caderno` identifica o caderno. Quem tem o link completo pode consultar e editar os dados. [Abrir o caderno](https://murillou4.github.io/restaurante-identidade/)
+
+Alterações no orçamento recalculam os valores na tela. Clique em **Salvar** para compartilhar as mudanças. Em caso de falha na conexão ou edição concorrente, o formulário preserva as mudanças locais para nova tentativa ou revisão.
+
+O servidor atual aceita alterações nos itens do catálogo inicial. Se recusar itens adicionados, o caderno oferece **Desfazer edições dos itens adicionados** para recuperar o salvamento dos outros preços.
 
 ## Desenvolvimento
 
-O site fica em `site/` e usa React, Vite e Tailwind CSS. Requer Node.js 24.
+O site usa React, Vite, Tailwind CSS e Node.js 24.
 
 ```sh
 cd site
 npm ci
 npm run dev
-```
-
-Para compilar e conferir a versão de produção:
-
-```sh
+npm test
 npm run build
 npm run preview
 ```
 
-O workflow `.github/workflows/pages.yml` publica `site/dist` no GitHub Pages. Os caminhos dos recursos usam uma base relativa para funcionar no subdiretório do repositório.
+O workflow `.github/workflows/pages.yml` publica `site/dist` no GitHub Pages a partir da `main`. O Vite usa caminhos relativos para os recursos.
 
-## Conteúdo e escolhas
+Os links diretos são `#orcamento-simular`, `#orcamento-custos`, `#orcamento-receitas`, `#orcamento-operacao` e `#galeria`. Os links antigos da entrada e do plano abrem **Preço de venda**. Os links de favoritos abrem **Nomes** em Marca.
 
-A **Visão geral** é a entrada do caderno e explica o objetivo, a prioridade de testar custos e montagem e os próximos passos. O **Orçamento** reúne quatro ferramentas: **Simular preço**, **Preços de compra**, **Recheios e sabores** e **Despesas e meta**. A simulação considera venda direta por encomenda e retirada no local. A área **Marca** separa favoritos, nomes e referências. O **Plano de abertura** distingue o que já está definido, o que está em teste, o que falta decidir e as ideias para depois.
+## Dados
 
-Na simulação, custo completo, preço sugerido e resultado por batata aparecem em destaque. A composição dos custos, as quantidades para comprar e a projeção mensal ficam em blocos expansíveis. Nas demais ferramentas, um resumo compacto permite voltar à simulação. Os formulários continuam montados ao trocar de área ou ferramenta, preservando também textos inválidos que ainda precisam de correção.
+`budgetCatalog.js` mantém os preços de referência e as receitas. `budgetMath.js` calcula custos e preços. O preço por quilo, litro ou unidade é derivado do preço e da quantidade já salvos. Os dois campos são gravados juntos ao editar uma compra.
 
-A navegação usa hashes: `#inicio`, `#orcamento`, `#galeria` (Marca) e `#planejamento` (Plano de abertura). As ferramentas aceitam links diretos `#orcamento-simular`, `#orcamento-custos`, `#orcamento-receitas` e `#orcamento-operacao`. O atalho antigo `#orcamento-canais` redireciona para Despesas e meta. Links antigos de nomes, logos e favoritos continuam funcionando. O link compartilhado abre a Visão geral do mesmo caderno.
+`useSharedBudget.js` salva o orçamento com controle de revisão e consulta atualizações a cada 15 segundos. `useSharedChoices.js` salva as escolhas de marca. O backend é hospedado separadamente e usa SQLite (D1).
 
-- `DEFINICOES-DO-RESTAURANTE.md`: decisões confirmadas, sugestões e próximas definições.
-- `site/src/data.js`: nomes e referências apresentados no site.
-- `assets/referencias/fontes.json`: fontes das imagens pesquisadas em 05/10/2026.
-- `site/public/referencias/`: cópias das imagens para a apresentação.
-
-Favoritos e orçamento são salvos online em um caderno identificado pelo parâmetro `caderno` no link. A área Marca mostra as escolhas do filho e da mãe separadamente e atualiza a cada 10 segundos. O seletor **Eu (filho) / Mãe** aparece somente em Marca e identifica quem marca os favoritos; essa preferência fica no navegador. O orçamento é único para os dois e consulta mudanças a cada 15 segundos, ao voltar para a aba e após salvar.
-
-Abra [o site](https://murillou4.github.io/restaurante-identidade/) e use **Copiar link compartilhado**. É preciso compartilhar o link completo do caderno: abrir apenas a página inicial em outro aparelho cria outro caderno. Para marcar favoritos, selecione quem está marcando em Marca. Quem tem o link pode ler e alterar os dados, sem conta ou senha.
-
-No Orçamento, mudanças alteram a simulação imediatamente; clique em **Salvar orçamento** para guardar os dados para os dois aparelhos. Edições sem salvar permanecem na aba e são protegidas de atualizações de outro aparelho. Uma revisão do servidor impede sobrescrever silenciosamente um orçamento antigo. Ao salvar, o caderno guarda também valores iniciais que ainda não estavam registrados, incluindo a taxa média de pagamento nos cadernos antigos.
-
-`site/src/useSharedChoices.js` conecta o GitHub Pages à API hospedada em Sites, com persistência SQLite (D1). As gravações usam valores explícitos e o site só confirma um favorito depois da resposta do servidor. Falhas oferecem uma tentativa de repetição e não substituem as últimas escolhas confirmadas.
-
-O código do backend é mantido no projeto de hospedagem separado `shared-backend/`, ignorado neste repositório. Ele aceita quatro nomes, dez referências, as identidades `eu`/`mae` e campos validados do orçamento; cada caderno usa um UUID aleatório no link. Não são solicitados nome pessoal, e-mail, telefone ou endereço.
-
-## Modelo de orçamento
-
-`budgetCatalog.js` mantém preços iniciais com fonte/data e as composições de recheio. `budgetMath.js` calcula custo, margem, resultado e ponto de equilíbrio; três recheios dividem o mesmo peso total. `useSharedBudget.js` mantém os valores confirmados separados das edições ainda não salvas.
-
-Em **Cadastro de preços**, cada item permite editar o preço pago e a quantidade da embalagem; o custo por kg, litro ou unidade é convertido automaticamente. Também é possível cadastrar ingredientes, bebidas, embalagens e materiais, editar nome/categoria/unidade e remover itens personalizados. Ingredientes novos podem entrar nas proporções das receitas; embalagens e materiais podem entrar no custo por pedido. As alterações atualizam a simulação e usam o mesmo salvamento do orçamento compartilhado. Os dados originais da pesquisa ficam como referência.
-
-A operação está definida como venda direta por encomenda, com retirada no local. Em **Despesas e meta**, a taxa média de pagamento pode ser informada conforme a tarifa real da maquininha ou do meio usado. Não há comissão de plataforma, mensalidade de aplicativo, subsídio de entrega ou frete ao cliente na simulação. O volume mensal fica na mesma área, junto dos custos por batata, custos fixos, perdas, impostos e margem. A taxa e os demais ajustes são salvos no orçamento compartilhado.
-
-Os preços publicados por lojas de Goiânia em 06/10/2026 são referências, sem garantia de disponibilidade ou entrega. Itens estimados e indisponíveis têm rótulos próprios. Porções, receitas, rendimento, margem, energia e trabalho são hipóteses editáveis, não definições finais. Consulte `docs/ORCAMENTO.md` e `docs/PRECOS-REFERENCIA.md`.
-
-Para validar o cálculo:
-
-```sh
-cd site
-npm test
-npm run build
-```
-
-As imagens de referência pertencem aos respectivos donos; nenhuma é a logo deste projeto. Não foram geradas novas imagens para o site.
+Os valores da pesquisa são referências de 06/10/2026. Consulte o [modelo de orçamento](docs/ORCAMENTO.md) e as [fontes dos preços](docs/PRECOS-REFERENCIA.md). As imagens de referência em **Marca** pertencem aos respectivos autores.
