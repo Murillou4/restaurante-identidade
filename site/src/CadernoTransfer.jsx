@@ -72,8 +72,8 @@ export default function CadernoTransfer({ budget, device, unitDraft, moved = fal
   }
 
   return <section aria-labelledby="caderno-transfer-heading" className="caderno-transfer">
-    <h2 id="caderno-transfer-heading">{moved ? 'O caderno mudou de endereço' : 'Levar os dados para o Painel da Grazi'}</h2>
-    <p>{moved ? 'Compras, receitas e preços são editados no painel.' : 'Exporte no aparelho onde a Grazi já usa o caderno e importe o arquivo em Custos no painel.'}</p>
+    <h2 id="caderno-transfer-heading">{moved ? 'O caderno mudou de endereço' : 'Painel da Grazi'}</h2>
+    <p>{moved ? 'Compras, receitas e preços são editados no painel.' : 'A exportação guarda uma cópia dos dados deste aparelho.'}</p>
     <div className="caderno-transfer-actions">
       <a className="budget-button primary" href={panel}>Abrir Painel da Grazi</a>
       <button className="budget-button secondary" type="button" onClick={exportData}
