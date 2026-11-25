@@ -6,7 +6,7 @@ Caderno para acompanhar o custo e o preço de venda das batatas recheadas feitas
 
 - **Preço de venda** mostra o custo, o preço sugerido e a sobra ou o prejuízo por batata. Digite o **Lucro desejado** para recalcular o preço sugerido e use **Preço que quer cobrar** para testar um valor de venda.
 - **Preços de compra** aceita o preço por quilo, litro ou unidade. Em **Calcular pelo pacote**, informe o preço pago, a quantidade e a medida da compra, como 250 g ou 0,25 kg. A lista também permite cadastrar ingredientes, bebidas, embalagens e materiais.
-- **Receitas** permite escolher um ingrediente do cadastro e informar a quantidade por batata. A quantidade adicionada entra no custo do sabor. Abra a tela pelo atalho **Editar receitas**, em **Preço de venda**.
+- **Receitas** usa a mesma medida de cada ingrediente em **Preços de compra**. Informe as quantidades para preparar o recheio e ajuste quanto vai em cada batata em **Preço de venda → Ajustar porções**. Ingredientes adicionados à receita são informados por batata e entram no custo do sabor.
 - **Despesas** reúne os custos fixos, as taxas e o volume mensal.
 - **Marca** reúne sugestões de nome e referências de logo. Escolha **Mãe** ou **Filho** para marcar favoritos nas próprias opções.
 
