@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultFields, estimate, getIngredientPriceEdit, ingredientValues, ingredients, menuFlavors, PIZZA_MODE_FIELD, presets, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD, normalizeMeasureUnit } from '../src/budgetCatalog.js';
+import {
+  defaultFields, estimate, getIngredientPriceEdit, getIngredientPurchaseEdit, ingredientValues,
+  ingredients, menuFlavors, PIZZA_MODE_FIELD, presets, readCustomIngredients, serializeCustomIngredients,
+  CUSTOM_CATALOG_FIELD, normalizeMeasureUnit, recipeAdditionPath, isDeviceBudgetField,
+} from '../src/budgetCatalog.js';
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-8, `${actual} != ${expected}`);
 
 test('cesta usa peso cru comprado da batata e não aumenta compra por perda do forno', () => {
@@ -277,6 +281,63 @@ test('preço de compra e quantidade da embalagem são editáveis sem alterar o c
   close(estimate(values).costs.base.batata, 2.25);
   assert.equal(item.price, 1.15);
   assert.equal(item.packageSize, 160);
+});
+
+test('o valor total pago é equivalente em gramas ou quilos', () => {
+  const potato = ingredients.find((item) => item.id === 'batata');
+  const grams = getIngredientPurchaseEdit(potato, 9.5, 250, 'g');
+  const kilos = getIngredientPurchaseEdit(potato, 9.5, 0.25, 'kg');
+  assert.deepEqual(grams, kilos);
+  close(ingredientValues(potato, grams).unitPrice, 38);
+  assert.equal(getIngredientPurchaseEdit(potato, 9.5, 250, 'ml'), null);
+  assert.equal(getIngredientPurchaseEdit(potato, 9.5, 0, 'g'), null);
+  const flour = { id: 'custom-abcdef03', unit: 'kg' };
+  const flourPrice = getIngredientPurchaseEdit(flour, 9.5, 250, 'g', [flour]);
+  assert.equal(flourPrice['ingredients.custom-abcdef03.packageSize'], 0.25);
+  close(ingredientValues(flour, flourPrice).unitPrice, 38);
+});
+
+test('acréscimos usam a quantidade por batata e afetam somente a receita selecionada', () => {
+  const corn = ingredients.find((item) => item.id === 'milho');
+  const oil = ingredients.find((item) => item.id === 'oleo');
+  const values = {
+    ...defaultFields,
+    [recipeAdditionPath('frango', corn)]: 25,
+    [recipeAdditionPath('frango', oil)]: 4.5,
+  };
+  const previous = estimate(defaultFields);
+  const updated = estimate(values);
+  const cornRow = updated.rows.find((row) => row.id === corn.id);
+  const oilRow = updated.rows.find((row) => row.id === oil.id);
+  const extraCost = cornRow.cost + oilRow.cost - previous.rows.find((row) => row.id === oil.id).cost;
+  close(cornRow.quantity, 25);
+  close(oilRow.quantity, defaultFields['settings.oilMl'] + 4.5);
+  close(updated.costs.fillings[0].cost - previous.costs.fillings[0].cost, extraCost);
+  close(updated.fullCost - previous.fullCost, extraCost * (1 + defaultFields['settings.lossPercent'] / 100));
+  close(estimate(values, menuFlavors[1]).fullCost, estimate(defaultFields, menuFlavors[1]).fullCost);
+  close(estimate({ ...values, 'recipes.frango.milho': 0, 'recipes.frango.oleo': 0 }).fullCost, previous.fullCost);
+});
+
+test('ingrediente personalizado em gramas entra pelo peso exato e fica no aparelho', () => {
+  const item = { id: 'custom-12345678-abcd', name: 'Catupiry', type: 'food', unit: 'g', custom: true };
+  const path = recipeAdditionPath('bacon', item);
+  const values = {
+    ...defaultFields,
+    [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients([item]),
+    ...getIngredientPurchaseEdit(item, 15, 250, 'g', [item]),
+    [path]: 23,
+  };
+  const result = estimate(values, menuFlavors[1]);
+  const row = result.rows.find(({ id }) => id === item.id);
+  close(row.quantity, 23);
+  close(row.cost, 15 * 23 / 250);
+  assert.ok(isDeviceBudgetField(path));
+  assert.ok(isDeviceBudgetField(CUSTOM_CATALOG_FIELD));
+  assert.ok(isDeviceBudgetField(`ingredients.${item.id}.packageSize`));
+  assert.ok(isDeviceBudgetField('recipes.frango.presunto'));
+  assert.ok(isDeviceBudgetField('recipes.pizza.milho'));
+  assert.equal(isDeviceBudgetField('recipes.frango.milho'), false);
+  assert.equal(isDeviceBudgetField('ingredients.milho.packageSize'), false);
 });
 
 test('itens personalizados são validados, salvos e entram no custo das receitas', () => {

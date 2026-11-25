@@ -1,6 +1,12 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ArrowSquareOut, WarningCircle } from '@phosphor-icons/react';
-import { RESEARCH_DATE, ingredients, fillings, menuFlavors, cheeses, presets, ingredientValues, getIngredientPriceEdit, purchaseMeasure, normalizeMeasureUnit, readCustomIngredients, serializeCustomIngredients, CUSTOM_CATALOG_FIELD, PIZZA_MODE_FIELD, pizzaPurchaseIds, isDeviceMenuField, estimate } from './budgetCatalog';
+import {
+  RESEARCH_DATE, ingredients, fillings, menuFlavors, cheeses, presets, ingredientValues,
+  getIngredientPriceEdit, getIngredientPurchaseEdit, purchaseMeasure, packageSizeFactor,
+  normalizeMeasureUnit, readCustomIngredients, serializeCustomIngredients, recipePartIds,
+  recipeAdditionPath, recipeAdditions, CUSTOM_CATALOG_FIELD, PIZZA_MODE_FIELD, pizzaPurchaseIds,
+  MAX_PURCHASE_PRICE, MAX_PACKAGE_SIZE, X_SALAD_PACKAGING_ID, isDeviceBudgetField, estimate,
+} from './budgetCatalog';
 import { defaultFields } from './sharedBudgetDefaults';
 import { budgetHash, budgetTabs } from './navigation';
 import BudgetThumbnail from './BudgetThumbnail';
@@ -14,11 +20,12 @@ const readDecimal = (value) => /^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(value.trim
 const searchText = (value) => value.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/\p{Diacritic}/gu, '');
 const statuses = { reference: 'Preço de referência', estimate: 'Preço estimado', unavailable: 'Sem estoque na fonte' };
 const purchaseLabels = { kg: 'quilo', L: 'litro', un: 'unidade' };
+const purchaseUnitLabels = { kg: 'Quilos (kg)', g: 'Gramas (g)', l: 'Litros (L)', ml: 'Mililitros (ml)', un: 'Unidades (un)' };
+const purchaseUnits = { g: ['kg', 'g'], ml: ['l', 'ml'], un: ['un'] };
+const displayUnit = (unit) => unit === 'l' ? 'L' : unit;
 const categories = { ingredient: 'Ingrediente', beverage: 'Bebida', packaging: 'Embalagem', material: 'Material' };
 const isPackaging = (category) => category === 'packaging' || category === 'material';
-const emptyNewItem = { name: '', category: 'ingredient', unit: 'kg', price: '' };
-const MAX_PURCHASE_PRICE = 10000000;
-const MAX_PACKAGE_SIZE = 100000000;
+const emptyNewItem = { name: '', category: 'ingredient', unit: 'kg', quantity: '1', price: '' };
 const menuFillingIds = new Set(menuFlavors.map(({ id }) => id));
 const ingredientById = Object.fromEntries(ingredients.map((item) => [item.id, item]));
 const operationFields = [
@@ -47,7 +54,7 @@ function conflictLabel(path, catalog) {
     const unit = purchaseLabels[purchaseMeasure(item?.unit)?.unit];
     return `${item?.name ?? 'Item'}: ${field === 'unitPrice' ? `preço por ${unit}` : { price: 'preço pago', packageSize: 'quantidade comprada', yieldPercent: 'rendimento', amount: 'quantidade por pedido' }[field] ?? 'valor'}`;
   }
-  if (group === 'recipes') return `${fillings.find((item) => item.id === id)?.name ?? 'Recheio'}: ${ingredientById[field]?.name ?? 'parte da receita'}`;
+  if (group === 'recipes') return `${fillings.find((item) => item.id === id)?.name ?? 'Recheio'}: ${catalog.find((item) => item.id === field)?.name ?? 'ingrediente'}`;
   return id === 'cheeseId' ? 'Queijo por cima' : 'Recheios selecionados';
 }
 function conflictValue(path, value, unit) {
@@ -103,16 +110,19 @@ function configurationErrors(values) {
   const catalog = [...ingredients, ...readCustomIngredients(values)];
   for (const item of catalog) {
     const data = ingredientValues(item, values);
-    if ((!Number.isFinite(data.price) || data.price < 0) && !(pizzaPurchaseIds.includes(item.id) && data.price === null)) errors.push({ path: `ingredients.${item.id}.unitPrice`, message: `Confira o preço de ${item.name}.` });
-    if (!Number.isFinite(data.packageSize) || data.packageSize <= 0) errors.push({ path: `ingredients.${item.id}.unitPrice`, message: `Informe novamente o preço por ${purchaseLabels[purchaseMeasure(item.unit).unit]} de ${item.name}.` });
+    const canWaitForPrice = data.price === null && (pizzaPurchaseIds.includes(item.id) || (item.id === X_SALAD_PACKAGING_ID && data.amount === 0));
+    if ((!Number.isFinite(data.price) || data.price < 0) && !canWaitForPrice) errors.push({ path: `ingredients.${item.id}.unitPrice`, message: `Confira o preço de ${item.name}.` });
+    if (!Number.isFinite(data.packageSize) || data.packageSize <= 0) errors.push({ path: `ingredients.${item.id}.packageSize`, message: `Confira a quantidade comprada de ${item.name}.` });
     if (!Number.isFinite(data.yieldPercent) || data.yieldPercent <= 0 || data.yieldPercent > 100) errors.push({ path: `ingredients.${item.id}.yieldPercent`, message: `Confira o rendimento de ${item.name}.` });
     if (item.type === 'packaging' && (!Number.isFinite(data.amount) || data.amount < 0)) errors.push({ path: `ingredients.${item.id}.amount`, message: `Confira a quantidade de ${item.name} por pedido.` });
   }
   for (const filling of fillings) {
-    const customIds = catalog.filter((item) => item.custom && item.type === 'food' && Object.hasOwn(values, `recipes.${filling.id}.${item.id}`)).map((item) => item.id);
-    const partIds = [...Object.keys(filling.parts), ...customIds];
+    const partIds = recipePartIds(filling, values, catalog);
     const weights = partIds.map((id) => values[`recipes.${filling.id}.${id}`]);
     if (weights.some((weight) => !Number.isFinite(weight) || weight < 0) || !(weights.reduce((sum, weight) => sum + weight, 0) > 0)) errors.push({ path: `recipes.${filling.id}.${Object.keys(filling.parts)[0]}`, message: `Confira a composição de ${filling.name}.` });
+    for (const { item, path, quantity } of recipeAdditions(filling, values, catalog)) {
+      if (!Number.isFinite(quantity) || quantity <= 0) errors.push({ path, message: `Confira a quantidade de ${item.name} na receita.` });
+    }
   }
   if (!cheeses.some((item) => item.id === values['simulation.cheeseId'])) errors.push({ path: 'simulation.cheeseId', message: 'Escolha uma opção de queijo válida.' });
   for (const field of ['palhaGrams', 'greensGrams']) if (!Number.isFinite(values[`settings.${field}`]) || values[`settings.${field}`] < 0) errors.push({ path: `settings.${field}`, message: `Confira o peso de ${settingLabels[field]}.` });
@@ -138,7 +148,7 @@ function CustomItemOptions({ item, disabled, onMetadataChange, onRemove }) {
       {item.unit !== 'un' && <div className="budget-field">
         <label htmlFor={`custom-unit-${item.id}`}>Medida cadastrada</label>
         <select id={`custom-unit-${item.id}`} value={item.unit} disabled={disabled} onChange={(event) => onMetadataChange(item.id, { unit: event.target.value })}>
-          {Object.entries({ g: 'Gramas (g)', kg: 'Quilos (kg)', ml: 'Mililitros (ml)', l: 'Litros (L)' }).filter(([unit]) => normalizeMeasureUnit(unit) === normalizeMeasureUnit(item.unit)).map(([unit, label]) => <option key={unit} value={unit}>{label}</option>)}
+          {purchaseUnits[normalizeMeasureUnit(item.unit)].map((unit) => <option key={unit} value={unit}>{purchaseUnitLabels[unit]}</option>)}
         </select>
       </div>}
       <div className="budget-field">
@@ -156,22 +166,36 @@ function CustomItemOptions({ item, disabled, onMetadataChange, onRemove }) {
 }
 
 function IngredientRow({ item, catalog, values, fieldProps, editMany, onMetadataChange, onRemove, hidden }) {
+  const unitId = useId();
+  const [selectedUnit, setSelectedUnit] = useState(null);
   const data = ingredientValues(item, values);
   const { unit, scale } = purchaseMeasure(item.unit);
   const path = `ingredients.${item.id}`;
   const edited = data.price !== item.price || data.packageSize !== item.packageSize;
-  const rawUnit = item.unit === 'l' ? 'L' : item.unit;
+  const rawUnit = displayUnit(item.unit);
   const isCount = unit === 'un';
+  const baseUnit = normalizeMeasureUnit(item.unit);
+  const packageUnit = selectedUnit ?? (data.packageSize < scale ? baseUnit : unit.toLowerCase());
+  const factor = packageSizeFactor(item.unit, packageUnit);
+  const deviceOnly = isDeviceBudgetField(`${path}.price`);
+  const isXSaladPackaging = item.id === X_SALAD_PACKAGING_ID;
 
   function editUnitPrice(_path, price) {
     const changes = getIngredientPriceEdit(item, price, catalog);
     if (changes) editMany(changes);
   }
 
-  function editPackage(field, value) {
-    const changes = { [`${path}.price`]: data.price, [`${path}.packageSize`]: data.packageSize };
-    changes[field] = field.endsWith('.packageSize') ? value * scale : value;
-    editMany(changes);
+  function editPackagePrice(_path, price) {
+    const changes = getIngredientPurchaseEdit(item, price, data.packageSize, item.unit, catalog);
+    if (changes) editMany(changes);
+  }
+
+  function editPackageQuantity(_path, quantity) {
+    const changes = getIngredientPurchaseEdit(item, data.price, quantity, packageUnit, catalog);
+    if (changes) {
+      setSelectedUnit(packageUnit);
+      editMany(changes);
+    }
   }
 
   return <article className="budget-ingredient" hidden={hidden}>
@@ -180,7 +204,7 @@ function IngredientRow({ item, catalog, values, fieldProps, editMany, onMetadata
         <BudgetThumbnail id={item.id} />
         <div>
           <h3>{item.name}</h3>
-          {pizzaPurchaseIds.includes(item.id)
+          {deviceOnly
             ? <small className="budget-purchase-status">{data.price === null ? 'Informe o preço' : 'Neste aparelho'}</small>
             : !item.custom && !edited && <small className="budget-purchase-status">{statuses[item.status]}</small>}
         </div>
@@ -189,21 +213,28 @@ function IngredientRow({ item, catalog, values, fieldProps, editMany, onMetadata
     </div>
     <details className="budget-package">
       <summary>Calcular pelo pacote<span className="budget-sr-only"> de {item.name}</span></summary>
-      <div className="budget-ingredient-inputs">
-        <NumberField {...fieldProps} path={`${path}.price`} label="Preço pago" value={data.price} unit="R$" context={item.name} edit={editPackage} max={MAX_PURCHASE_PRICE} />
-        <NumberField {...fieldProps} path={`${path}.packageSize`} label={isCount ? 'Unidades no pacote' : 'Quantidade comprada'} value={data.packageSize / scale} unit={unit} context={item.name} edit={editPackage} positive max={MAX_PACKAGE_SIZE / scale} />
+      <div className={`budget-ingredient-inputs${isCount ? '' : ' budget-package-fields'}`}>
+        <NumberField {...fieldProps} path={`${path}.price`} label="Preço pago" value={data.price} prefix="R$" context={item.name} edit={editPackagePrice} max={MAX_PURCHASE_PRICE} />
+        <NumberField key={packageUnit} {...fieldProps} path={`${path}.packageSize`} label={isCount ? 'Unidades no pacote' : 'Quantidade comprada'} value={data.packageSize / factor} unit={displayUnit(packageUnit)} context={item.name} edit={editPackageQuantity} positive max={MAX_PACKAGE_SIZE / factor} />
+        {!isCount && <div className="budget-field">
+          <label htmlFor={unitId}>Medida da compra</label>
+          <select id={unitId} aria-label={`Medida da compra: ${item.name}`} value={packageUnit} disabled={fieldProps.disabled} onChange={(event) => setSelectedUnit(event.target.value)}>
+            {purchaseUnits[baseUnit].map((choice) => <option key={choice} value={choice}>{purchaseUnitLabels[choice]}</option>)}
+          </select>
+        </div>}
+        {isXSaladPackaging && <NumberField {...fieldProps} path={`${path}.amount`} label="Quantidade por pedido" value={data.amount} unit={rawUnit} context={item.name} help={item.note} />}
       </div>
       <details className="budget-price-reference">
         <summary>Detalhes de {item.name}</summary>
         <div className="budget-ingredient-inputs">
-          {item.type === 'packaging'
+          {item.type === 'packaging' && !isXSaladPackaging
             ? <NumberField {...fieldProps} path={`${path}.amount`} label="Quantidade por pedido" value={data.amount} unit={rawUnit} context={item.name} />
-            : item.id !== 'batata' && <NumberField {...fieldProps} path={`${path}.yieldPercent`} label="Quanto sobra após o preparo" value={data.yieldPercent} unit="%" context={item.name} positive max={100} help="Use 100% se o ingrediente for aproveitado inteiro." />}
+            : item.type === 'food' && item.id !== 'batata' && <NumberField {...fieldProps} path={`${path}.yieldPercent`} label="Quanto sobra após o preparo" value={data.yieldPercent} unit="%" context={item.name} positive max={100} help="Use 100% se o ingrediente for aproveitado inteiro." />}
         </div>
         {item.custom ? <CustomItemOptions item={item} disabled={fieldProps.disabled} onMetadataChange={onMetadataChange} onRemove={onRemove} /> : <>
           {item.store && <p className="budget-source-note">{item.store} · {RESEARCH_DATE} · {money(item.price)} por {number(item.packageSize, 3)} {rawUnit}</p>}
-          {pizzaPurchaseIds.includes(item.id) && <p className="budget-source-note">O preço deste item fica neste aparelho.</p>}
-          {item.note && <p className="budget-source-note">{item.note}</p>}
+          {deviceOnly && <p className="budget-source-note">Os valores deste item ficam neste aparelho.</p>}
+          {item.note && !isXSaladPackaging && <p className="budget-source-note">{item.note}</p>}
           {item.source && <a className="budget-source-link" href={item.source} target="_blank" rel="noopener noreferrer">Ver fonte <ArrowSquareOut size={14} aria-hidden="true" /></a>}
         </>}
       </details>
@@ -296,7 +327,63 @@ function alertPath(item, result) {
   return 'settings.chosenPrice';
 }
 
-export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular', onTabChange }) {
+function RecipeAddForm({ items, recipeName, disabled, onAdd }) {
+  const ingredientId = useId();
+  const amountId = useId();
+  const [selectedId, setSelectedId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [error, setError] = useState('');
+  const selected = items.find((item) => item.id === selectedId);
+
+  function submit(event) {
+    event.preventDefault();
+    if (!selected) return;
+    const quantity = readDecimal(amount);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setError('Informe uma quantidade maior que zero.');
+      return;
+    }
+    onAdd(selected, quantity);
+    setSelectedId('');
+    setAmount('');
+    setError('');
+    event.currentTarget.closest('details').open = false;
+  }
+
+  return <details className="budget-recipe-add">
+    <summary>Adicionar ingrediente<span className="budget-sr-only"> a {recipeName}</span></summary>
+    {items.length > 0 && <form onSubmit={submit} noValidate>
+      <div className="budget-recipe-inputs">
+        <div className="budget-field">
+          <label htmlFor={ingredientId}>Ingrediente</label>
+          <select id={ingredientId} value={selected ? selectedId : ''} disabled={disabled} onChange={(event) => {
+            setSelectedId(event.target.value);
+            setAmount('');
+            setError('');
+          }}>
+            <option value="">Escolha um ingrediente</option>
+            {items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </select>
+        </div>
+        <div className={`budget-field${error ? ' has-error' : ''}`}>
+          <label htmlFor={amountId}>Quantidade por batata</label>
+          <div className="budget-input-wrap">
+            <input id={amountId} value={amount} inputMode="decimal" disabled={disabled || !selected} aria-invalid={Boolean(error)} aria-describedby={error ? `${amountId}-error` : undefined} onChange={(event) => {
+              setAmount(event.target.value);
+              setError('');
+            }} />
+            {selected && <span>{normalizeMeasureUnit(selected.unit)}</span>}
+          </div>
+          {error && <small className="budget-field-error" id={`${amountId}-error`} role="alert">{error}</small>}
+        </div>
+      </div>
+      <button type="submit" className="budget-button primary" disabled={disabled || !selected}>Adicionar à receita</button>
+    </form>}
+    <a className="text-link" href={budgetHash('custos')}>Cadastrar ingrediente em Preços de compra</a>
+  </details>;
+}
+
+export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simular', onTabChange }) {
   const tab = budgetTabs.some((item) => item.id === activeTab) ? activeTab : 'simular';
   const rootRef = useRef(null);
   const [pendingFocus, setPendingFocus] = useState(null);
@@ -304,8 +391,8 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
   const [fieldErrors, setFieldErrors] = useState({});
   const [showSaved, setShowSaved] = useState(false);
   const [newItem, setNewItem] = useState(emptyNewItem);
-  const [newItemError, setNewItemError] = useState('');
-  const values = { ...defaultFields, ...sharedBudget.values, ...deviceMenu.fields };
+  const [newItemError, setNewItemError] = useState(null);
+  const values = { ...defaultFields, ...sharedBudget.values, ...deviceBudget.fields };
   const customIngredients = readCustomIngredients(values);
   const catalog = [...ingredients, ...customIngredients];
   const result = estimate(values);
@@ -358,9 +445,9 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
     const deviceChanges = {};
     const sharedChanges = {};
     for (const [path, value] of Object.entries(changes)) {
-      (isDeviceMenuField(path) ? deviceChanges : sharedChanges)[path] = value;
+      (isDeviceBudgetField(path) ? deviceChanges : sharedChanges)[path] = value;
     }
-    if (Object.keys(deviceChanges).length) deviceMenu.edit(deviceChanges);
+    if (Object.keys(deviceChanges).length) deviceBudget.edit(deviceChanges);
     if (Object.keys(sharedChanges).length) sharedBudget.editMany(sharedChanges);
   }
 
@@ -368,9 +455,9 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
   const settingField = (id, label, unit, props = {}) => <NumberField key={id} {...fieldProps} path={`settings.${id}`} label={label} value={values[`settings.${id}`]} unit={unit} {...props} />;
   const shownCost = (cost) => invalid || connecting || missingPrices.length ? null : cost;
   const applyPreset = (preset) => {
-    if (preset.id === 'pizza') deviceMenu.edit({ [PIZZA_MODE_FIELD]: true });
+    if (preset.id === 'pizza') deviceBudget.edit({ [PIZZA_MODE_FIELD]: true });
     else {
-      if (pizza) deviceMenu.edit({ [PIZZA_MODE_FIELD]: false });
+      if (pizza) deviceBudget.edit({ [PIZZA_MODE_FIELD]: false });
       sharedBudget.editMany({ 'simulation.fillings': [...preset.fillings], 'simulation.cheeseId': preset.cheese, 'settings.palhaGrams': preset.palha ?? 0 });
     }
     onTabChange?.('simular');
@@ -387,34 +474,36 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
     if (!current) return;
     const changes = {};
     if (patch.unit && patch.unit !== current.unit) {
-      if (normalizeMeasureUnit(patch.unit) !== normalizeMeasureUnit(current.unit)) return;
-      const scale = purchaseMeasure(patch.unit).scale / purchaseMeasure(current.unit).scale;
+      const factor = packageSizeFactor(patch.unit, current.unit);
+      if (!factor) return;
       const data = ingredientValues(current, values);
       changes[`ingredients.${id}.price`] = data.price;
-      changes[`ingredients.${id}.packageSize`] = data.packageSize * scale;
-      if (Number.isFinite(data.amount)) changes[`ingredients.${id}.amount`] = data.amount * scale;
+      changes[`ingredients.${id}.packageSize`] = data.packageSize * factor;
+      if (Number.isFinite(data.amount)) changes[`ingredients.${id}.amount`] = data.amount * factor;
     }
     const next = customIngredients.map((item) => item.id === id ? { ...item, ...patch } : item);
-    if (patch.type === 'food') {
-      for (const filling of fillings.filter(({ id: fillingId }) => fillingId !== 'pizza')) {
-        const recipePath = 'recipes.' + filling.id + '.' + id;
-        if (!Object.hasOwn(values, recipePath)) changes[recipePath] = 0;
-      }
-    }
-    changes[CUSTOM_CATALOG_FIELD] = serializeCustomIngredients(next);
-    sharedBudget.editMany(changes);
+    editMany({ ...changes, [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients(next) });
   };
   const removeCustomIngredient = (id) => {
     const item = customIngredients.find((entry) => entry.id === id);
     if (!item || !window.confirm(`Remover ${item.name} do cadastro? Ele deixará de entrar nos cálculos futuros.`)) return;
-    sharedBudget.edit(CUSTOM_CATALOG_FIELD, serializeCustomIngredients(customIngredients.filter((entry) => entry.id !== id)));
+    editMany({ [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients(customIngredients.filter((entry) => entry.id !== id)) });
+  };
+  const changeNewItem = (patch) => {
+    setNewItem((current) => ({ ...current, ...patch }));
+    setNewItemError(null);
   };
   const addCustomIngredient = (event) => {
     event.preventDefault();
     const name = newItem.name.trim();
     const price = readDecimal(newItem.price);
     if (!Number.isFinite(price) || price < 0 || price > MAX_PURCHASE_PRICE) {
-      setNewItemError('Informe um preço válido. Use vírgula para os centavos.');
+      setNewItemError({ field: 'price', message: 'Informe um preço válido. Use vírgula para os centavos.' });
+      return;
+    }
+    const quantity = readDecimal(newItem.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0 || quantity > MAX_PACKAGE_SIZE) {
+      setNewItemError({ field: 'quantity', message: 'Informe uma quantidade maior que zero.' });
       return;
     }
     if (!name) return;
@@ -424,14 +513,13 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
     const nextCatalog = [...customIngredients, item];
     const changes = {
       [CUSTOM_CATALOG_FIELD]: serializeCustomIngredients(nextCatalog),
-      ...getIngredientPriceEdit(item, price, nextCatalog),
+      ...getIngredientPurchaseEdit(item, price, quantity, newItem.unit, nextCatalog),
       [`ingredients.${id}.yieldPercent`]: item.yieldPercent,
       [`ingredients.${id}.amount`]: item.amount,
     };
-    if (item.type === 'food') for (const filling of fillings.filter(({ id }) => id !== 'pizza')) changes[`recipes.${filling.id}.${id}`] = 0;
-    sharedBudget.editMany(changes);
+    editMany(changes);
     setNewItem(emptyNewItem);
-    setNewItemError('');
+    setNewItemError(null);
     setQuery('');
     event.currentTarget.closest('details').open = false;
     setPendingFocus(`ingredients.${id}.unitPrice`);
@@ -470,17 +558,35 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
   };
   function recipeDetails(filling) {
     const flavor = menuFlavors.find(({ id }) => id === filling.id);
-    const customIds = customIngredients.filter((item) => item.type === 'food' && Object.hasOwn(values, `recipes.${filling.id}.${item.id}`)).map((item) => item.id);
-    const partIds = [...Object.keys(filling.parts), ...customIds];
+    const name = flavor?.name ?? filling.name;
+    const partIds = recipePartIds(filling, values, catalog);
+    const additions = recipeAdditions(filling, values, catalog);
+    const usedIds = new Set([...partIds, ...additions.map(({ item }) => item.id)]);
+    const available = catalog.filter((item) => item.type === 'food' && !usedIds.has(item.id))
+      .sort((first, second) => first.name.localeCompare(second.name, 'pt-BR'));
     return <details key={filling.id} className="budget-disclosure budget-recipe">
-      <summary>{flavor?.name ?? filling.name}</summary>
+      <summary>{name}</summary>
       {flavor && <p className="budget-help">{flavor.assembly}</p>}
       {filling.id === 'strogonoff' && <p className="budget-help">Frango em molho encorpado. A anotação de preparo também menciona bacon.</p>}
       <p className="budget-help">Proporções estimadas para calcular o custo. Ajuste com as medidas da receita.</p>
-      {filling.id === 'pizza' && <p className="budget-help">As proporções da Pizza e os preços de presunto e orégano ficam neste aparelho.</p>}
+      {filling.id === 'pizza' && <p className="budget-help">A receita da Pizza e os preços de presunto e orégano ficam neste aparelho.</p>}
       <div className="budget-recipe-inputs">{partIds.map((id) => (
-        <NumberField key={id} {...fieldProps} path={`recipes.${filling.id}.${id}`} label={catalog.find((item) => item.id === id)?.name ?? id} value={values[`recipes.${filling.id}.${id}`]} unit="partes" context={flavor?.name ?? filling.name} />
+        <NumberField key={id} {...fieldProps} path={`recipes.${filling.id}.${id}`} label={catalog.find((item) => item.id === id)?.name ?? id} value={values[`recipes.${filling.id}.${id}`]} unit="partes" context={name} />
       ))}</div>
+      {additions.length > 0 && <fieldset className="budget-recipe-additions">
+        <legend>Ingredientes adicionados por batata</legend>
+        <div className="budget-recipe-inputs">
+          {additions.map(({ item, path, quantity }) => <div className="budget-recipe-added" key={path}>
+            <NumberField {...fieldProps} path={path} label={item.name} value={quantity} unit={normalizeMeasureUnit(item.unit)} context={name} positive />
+            <button className="text-link" type="button" aria-label={`Remover ${item.name} de ${name}`} disabled={disabled} onClick={() => editMany({ [path]: 0 })}>Remover</button>
+          </div>)}
+        </div>
+      </fieldset>}
+      <RecipeAddForm items={available} recipeName={name} disabled={disabled} onAdd={(item, quantity) => {
+        const path = recipeAdditionPath(filling.id, item);
+        editMany({ [path]: quantity });
+        setPendingFocus(path);
+      }} />
     </details>;
   }
 
@@ -502,11 +608,10 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
       <WarningCircle size={20} aria-hidden="true" />
       <div>
         <p>{sharedBudget.error || sharedBudget.readError}</p>
-        {sharedBudget.customRejected && <button type="button" className="text-link" onClick={sharedBudget.discardCustomEdits} disabled={disabled}>Desfazer edições dos itens adicionados</button>}
         {!sharedBudget.error && sharedBudget.readError && <button type="button" className="text-link" onClick={sharedBudget.refresh} disabled={disabled}>Tentar carregar de novo</button>}
       </div>
     </div>}
-    {deviceMenu.error && <p className="budget-alert error" role="alert">{deviceMenu.error}</p>}
+    {deviceBudget.error && <p className="budget-alert error" role="alert">{deviceBudget.error}</p>}
     {conflicts.length > 0 && <section className="budget-conflicts" aria-labelledby="budget-conflict-title">
       <h2 id="budget-conflict-title">Mudanças em outro aparelho</h2>
       <div className="budget-table-scroll">
@@ -528,7 +633,7 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
 
     <div hidden={tab !== 'simular'}>
       {missingPrices.length > 0 && <div className="budget-missing-prices">
-        <p>Para calcular a Pizza, informe os preços abaixo.</p>
+        <p>Para calcular o preço por batata, informe os preços abaixo.</p>
         <div>{missingPrices.map(({ id, name }) => <button key={id} type="button" className="text-link" onClick={() => goToField(`ingredients.${id}.unitPrice`, name)}>{name}</button>)}</div>
       </div>}
       <ResultPanel result={result} values={values} fieldProps={fieldProps} unavailable={invalid || connecting || missingPrices.length > 0} warnings={warnings}>
@@ -541,6 +646,7 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
             </button>)}
           </div>
           <p><strong>Batata atual</strong> {combination}</p>
+          <a className="text-link" href={budgetHash('receitas')}>Editar receitas</a>
           {!pizza && <details className="budget-disclosure">
             <summary>Mudar recheios e queijo</summary>
             <div className="budget-field budget-cheese">
@@ -601,37 +707,50 @@ export default function Budget({ sharedBudget, deviceMenu, activeTab = 'simular'
             <div className="budget-add-grid">
               <div className="budget-field">
                 <label htmlFor="new-item-name">Nome</label>
-                <input id="new-item-name" required maxLength={80} value={newItem.name} onChange={(event) => setNewItem((current) => ({ ...current, name: event.target.value }))} />
+                <input id="new-item-name" required maxLength={80} value={newItem.name} onChange={(event) => changeNewItem({ name: event.target.value })} />
               </div>
               <div className="budget-field">
                 <label htmlFor="new-item-category">Categoria</label>
                 <select id="new-item-category" value={newItem.category} onChange={(event) => {
                   const category = event.target.value;
                   const unit = isPackaging(category) ? 'un' : category === 'beverage' ? 'l' : 'kg';
-                  setNewItem((current) => ({ ...current, category, unit }));
+                  changeNewItem({ category, unit, quantity: '1' });
                 }}>
                   {Object.entries(categories).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
                 </select>
               </div>
               <div className="budget-field">
-                <label htmlFor="new-item-unit">Comprado por</label>
-                <select id="new-item-unit" value={newItem.unit} onChange={(event) => setNewItem((current) => ({ ...current, unit: event.target.value }))}>
-                  <option value="kg">Quilo (kg)</option><option value="l">Litro (L)</option><option value="un">Unidade (un)</option>
+                <label htmlFor="new-item-unit">Medida da compra</label>
+                <select id="new-item-unit" value={newItem.unit} onChange={(event) => {
+                  const unit = event.target.value;
+                  changeNewItem({ unit, quantity: unit === 'g' || unit === 'ml' ? '' : '1' });
+                }}>
+                  {Object.entries(purchaseUnitLabels).map(([unit, label]) => <option key={unit} value={unit}>{label}</option>)}
                 </select>
               </div>
-              <div className={`budget-field ${newItemError ? 'has-error' : ''}`}>
-                <label htmlFor="new-item-price">Preço por {purchaseLabels[purchaseMeasure(newItem.unit).unit]}</label>
+              <div className={`budget-field${newItemError?.field === 'quantity' ? ' has-error' : ''}`}>
+                <label htmlFor="new-item-quantity">Quantidade comprada</label>
+                <div className="budget-input-wrap">
+                  <input id="new-item-quantity" required inputMode="decimal" value={newItem.quantity}
+                    aria-invalid={newItemError?.field === 'quantity'} aria-describedby={newItemError?.field === 'quantity' ? 'new-item-quantity-error' : undefined}
+                    onChange={(event) => changeNewItem({ quantity: event.target.value })} />
+                  <span aria-hidden="true">{displayUnit(newItem.unit)}</span>
+                </div>
+                {newItemError?.field === 'quantity' && <small className="budget-field-error" id="new-item-quantity-error" role="alert">{newItemError.message}</small>}
+              </div>
+              <div className={`budget-field${newItemError?.field === 'price' ? ' has-error' : ''}`}>
+                <label htmlFor="new-item-price">Preço pago</label>
                 <div className="budget-input-wrap">
                   <span className="budget-input-prefix" aria-hidden="true">R$</span>
-                  <input id="new-item-price" required inputMode="decimal" aria-invalid={Boolean(newItemError)} aria-describedby={newItemError ? 'new-item-price-error' : undefined} value={newItem.price} onChange={(event) => {
-                    setNewItemError('');
-                    setNewItem((current) => ({ ...current, price: event.target.value }));
-                  }} />
+                  <input id="new-item-price" required inputMode="decimal" value={newItem.price}
+                    aria-invalid={newItemError?.field === 'price'} aria-describedby={newItemError?.field === 'price' ? 'new-item-price-error' : undefined}
+                    onChange={(event) => changeNewItem({ price: event.target.value })} />
                 </div>
-                {newItemError && <small className="budget-field-error" id="new-item-price-error" role="alert">{newItemError}</small>}
+                {newItemError?.field === 'price' && <small className="budget-field-error" id="new-item-price-error" role="alert">{newItemError.message}</small>}
               </div>
             </div>
             <button type="submit" className="budget-button primary" disabled={disabled || !newItem.name.trim()}>Adicionar</button>
+            <p className="budget-help">O item cadastrado fica neste aparelho.</p>
           </form>
         </details>
       </div>

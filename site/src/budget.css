@@ -251,7 +251,7 @@
 .budget-purchase-row .budget-input-wrap input:disabled { opacity: .7; }
 .budget-purchase-status { display: block; margin-top: 3px; color: var(--color-muted); font-size: .83rem; }
 
-.budget-package > summary, .budget-price-reference > summary, .budget-add-item > summary {
+.budget-package > summary, .budget-price-reference > summary, .budget-add-item > summary, .budget-recipe-add > summary {
   width: fit-content;
   color: var(--color-clay);
 }
@@ -268,7 +268,8 @@
 .budget-disclosure > summary,
 .budget-package > summary,
 .budget-price-reference > summary,
-.budget-add-item > summary {
+.budget-add-item > summary,
+.budget-recipe-add > summary {
   min-height: 44px;
   padding: 10px 0;
   font-weight: 500;
@@ -301,6 +302,13 @@
 }
 
 .budget-add-grid, .budget-custom-meta { margin: 12px 0 16px; }
+.budget-package-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 610px; }
+.budget-recipe-add { margin-top: 12px; }
+.budget-recipe-add form { max-width: 560px; }
+.budget-recipe-add form .budget-button { margin-top: 14px; }
+.budget-recipe-additions { min-width: 0; margin: 20px 0 0; }
+.budget-recipe-additions legend { margin-bottom: 8px; font-weight: 600; }
+.budget-recipe-added .text-link { font-size: .87rem; }
 .budget-section-heading { margin: 18px 0 12px; }
 .budget-section-heading p { margin-top: 5px; color: var(--color-muted); }
 .budget-fieldset { min-width: 0; margin-bottom: 18px; }
@@ -384,6 +392,11 @@
   .budget-main-metrics > *, .budget-sale-test { padding: 13px 12px; }
   .budget-sale-test { gap: 12px; }
   .budget-sale-test label, .budget-main-metrics dt, .budget-net-metric dt { font-size: .92rem; }
+}
+
+@media (max-width: 480px) {
+  .budget-package-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .budget-package-fields > .budget-field:last-child { grid-column: 1 / -1; }
 }
 
 @media (max-width: 359px) {

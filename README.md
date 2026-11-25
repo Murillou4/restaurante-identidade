@@ -5,17 +5,16 @@ Caderno para acompanhar o custo e o preço de venda das batatas recheadas feitas
 ## Usar o caderno
 
 - **Preço de venda** mostra o custo, o preço sugerido e a sobra ou o prejuízo por batata. Digite o **Lucro desejado** para recalcular o preço sugerido e use **Preço que quer cobrar** para testar um valor de venda.
-- **Preços de compra** aceita o preço por quilo, litro ou unidade. **Calcular pelo pacote** usa o preço pago e a quantidade comprada. A lista também permite cadastrar ingredientes, bebidas, embalagens e materiais.
-- **Receitas e despesas** reúne a composição dos recheios, os custos fixos, as taxas e o volume mensal.
+- **Preços de compra** aceita o preço por quilo, litro ou unidade. Em **Calcular pelo pacote**, informe o preço pago, a quantidade e a medida da compra, como 250 g ou 0,25 kg. A lista também permite cadastrar ingredientes, bebidas, embalagens e materiais.
+- **Receitas** permite escolher um ingrediente do cadastro e informar a quantidade por batata. A quantidade adicionada entra no custo do sabor. Abra a tela pelo atalho **Editar receitas**, em **Preço de venda**.
+- **Despesas** reúne os custos fixos, as taxas e o volume mensal.
 - **Marca** reúne sugestões de nome e referências de logo. Escolha **Mãe** ou **Filho** para marcar favoritos nas próprias opções.
 
-Os sabores do cartaz são **Pizza**, **Bacon**, **Calabresa** e **Frango**. A Pizza pede os preços de presunto e orégano. Esses dois preços, as proporções e a seleção da Pizza são guardados no navegador, por caderno. As demais compras e ajustes continuam usando o salvamento compartilhado.
+Os sabores do cartaz são **Pizza**, **Bacon**, **Calabresa** e **Frango**. Os preços e o uso de presunto e orégano, as edições e a seleção da Pizza, os itens personalizados e a embalagem plástica de X-salada ficam no navegador, por caderno. Os demais itens do catálogo usam o salvamento compartilhado.
 
 Em qualquer tela, use **Copiar link do caderno** no rodapé para acessar os mesmos dados em outro aparelho. O parâmetro `caderno` identifica o caderno. Quem tem o link completo pode consultar e editar os dados. [Abrir o caderno](https://murillou4.github.io/restaurante-identidade/)
 
 Alterações no orçamento recalculam os valores na tela. Clique em **Salvar** para compartilhar as mudanças. Em caso de falha na conexão ou edição concorrente, o formulário preserva as mudanças locais para nova tentativa ou revisão.
-
-O servidor atual aceita alterações nos itens do catálogo inicial. Se recusar itens adicionados, o caderno oferece **Desfazer edições dos itens adicionados** para recuperar o salvamento dos outros preços.
 
 ## Desenvolvimento
 

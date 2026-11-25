@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { CUSTOM_CATALOG_FIELD, isDeviceMenuField } from './budgetCatalog.js';
+import { isDeviceBudgetField } from './budgetCatalog.js';
 
 const API = 'https://batataria-caderno-compartilhado.murillo-castro.chatgpt.site';
-const isCustomField = (path) => path === CUSTOM_CATALOG_FIELD || /^ingredients\.custom-|^recipes\.[^.]+\.custom-/.test(path);
 
 export function useSharedBudget(roomId, defaults) {
   const [cloud, setCloud] = useState(null);
@@ -13,7 +12,6 @@ export function useSharedBudget(roomId, defaults) {
   const [readError, setReadError] = useState('');
   const [notice, setNotice] = useState('');
   const [conflicts, setConflicts] = useState([]);
-  const [customRejected, setCustomRejected] = useState(false);
   const cloudRef = useRef(null);
   const draftRef = useRef({});
   const mounted = useRef(false);
@@ -108,47 +106,27 @@ export function useSharedBudget(roomId, defaults) {
     failedOperation.current = null;
     if (!remainingConflicts.length) { conflictReview.current = false; setError(''); }
     setNotice('');
-    setCustomRejected(false);
   }, [defaults]);
-
-  const discardCustomEdits = useCallback(() => {
-    const next = Object.fromEntries(Object.entries(draftRef.current).filter(([path]) => !isCustomField(path)));
-    draftRef.current = next;
-    setDraft(next);
-    if (!Object.keys(next).length) draftBase.current = null;
-    conflictsRef.current = conflictsRef.current.filter(({ path }) => !isCustomField(path));
-    setConflicts(conflictsRef.current);
-    conflictReview.current = conflictsRef.current.length > 0;
-    setCustomRejected(false);
-    setError('');
-  }, []);
 
   const save = useCallback(async () => {
     if (!cloudRef.current || inFlight.current || !Object.keys(draftRef.current).length) return false;
     const base = draftBase.current ?? cloudRef.current;
     // Freeze newly introduced defaults when an older caderno is saved, too.
     // The revision check still protects values added by the other appliance.
-    // Older servers need no empty catalog field. Explicit catalog edits still
-    // travel with their ingredient and recipe fields in the same request.
-    const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([path]) => path !== CUSTOM_CATALOG_FIELD && !isDeviceMenuField(path) && !Object.hasOwn(base.fields, path)));
+    const missingDefaults = Object.fromEntries(Object.entries(defaults).filter(([path]) => !isDeviceBudgetField(path) && !Object.hasOwn(base.fields, path)));
     const operation = failedOperation.current ?? { revision: base.revision, mutationId: crypto.randomUUID(), changes: { ...missingDefaults, ...draftRef.current } };
     const currentEpoch = epoch.current;
     inFlight.current = true;
     setSaving(true);
     setError('');
     setNotice('');
-    setCustomRejected(false);
     try {
       const { value, conflict, rejected } = await request(operation);
       if (!mounted.current || currentEpoch !== epoch.current) return false;
       if (rejected) {
         failedOperation.current = null;
         uncertain.current = false;
-        const hasCustomEdits = Object.keys(operation.changes).some(isCustomField);
-        setCustomRejected(hasCustomEdits);
-        setError(hasCustomEdits
-          ? 'O caderno recusou as alterações. Se precisar salvar os outros preços, desfaça as edições dos itens adicionados.'
-          : 'O caderno recusou estes valores. Confira os campos que você alterou.');
+        setError('O caderno recusou estes valores. Confira os campos que você alterou.');
         return false;
       }
       apply(value);
@@ -189,9 +167,9 @@ export function useSharedBudget(roomId, defaults) {
 
   return {
     values: { ...defaults, ...cloud?.fields, ...draft },
-    cloud, loading, saving, readError, error, notice, conflicts, customRejected,
+    cloud, loading, saving, readError, error, notice, conflicts,
     dirty: Object.keys(draft).length,
     edit: (path, value) => editMany({ [path]: value }),
-    editMany, save, refresh, discardCustomEdits,
+    editMany, save, refresh,
   };
 }

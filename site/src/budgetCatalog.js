@@ -3,9 +3,13 @@ import { calculateBudget, distributeFillings, DEFAULT_BUDGET_SETTINGS } from './
 export const RESEARCH_DATE = '06/10/2026';
 export const CUSTOM_CATALOG_FIELD = 'settings.customCatalog';
 export const PIZZA_MODE_FIELD = 'simulation.pizza';
+export const X_SALAD_PACKAGING_ID = 'embalagem-x-salada';
+export const MAX_PURCHASE_PRICE = 10_000_000;
+export const MAX_PACKAGE_SIZE = 100_000_000;
 export const pizzaPurchaseIds = ['presunto', 'oregano'];
-const deviceMenuField = /^(?:ingredients\.(?:presunto|oregano)\.|recipes\.pizza\.)/;
-export const isDeviceMenuField = (path) => path === PIZZA_MODE_FIELD || deviceMenuField.test(path);
+const deviceBudgetField = /^(?:ingredients\.(?:presunto\.|oregano\.|custom-)|recipes\.(?:pizza\.|[^.]+\.(?:presunto$|oregano$|(?:extra-)?custom-)))/;
+export const isDeviceBudgetField = (path) => path === PIZZA_MODE_FIELD || path === CUSTOM_CATALOG_FIELD ||
+  path.startsWith(`ingredients.${X_SALAD_PACKAGING_ID}.`) || deviceBudgetField.test(path);
 const sousa = 'https://www.cardapio.datacaixa.com.br/loja=7655';
 const moreira = 'https://www.moreira.com.br/p/';
 const jk = 'https://www.embalagensjk.com.br/produto/';
@@ -38,15 +42,12 @@ export const ingredients = [
   ingredient('presunto', 'Presunto', 'g', 1000, null, '', '', '', 100, 'estimate'),
   ingredient('oregano', 'Orégano', 'g', 1000, null, '', '', '', 100, 'estimate'),
   ingredient('pote', 'Bandeja com tampa', 'un', 100, 99.99, 'JK Embalagens · Campinas', `${jk}bandeja-de-aluminio-4p-m170-215x170x40-100x1`, 'Alumínio 1.100 ml com tampa. Altura de 4 cm: testar fechamento com batata grande e recheios.', 100, 'reference', 'packaging'),
+  ingredient(X_SALAD_PACKAGING_ID, 'Embalagem plástica de X-salada', 'un', 1, null, '', '', 'Informe quantas embalagens usa por pedido. Deixe 0 se não usar esta embalagem.', 100, 'estimate', 'packaging', 0),
   ingredient('saco', 'Saco para retirada', 'un', 100, 80.5, 'JK Embalagens · Campinas', `${jk}saco-papel-p-delivery-25kg`, '31 × 37 × 18 cm. Testar o conjunto com a bandeja; frete de compra não incluído.', 100, 'reference', 'packaging'),
   ingredient('talher', 'Garfo descartável', 'un', 1000, 60, 'Potência · Goiânia', 'https://www.potenciaembalagens.com.br/descartaveis/garfo-refeicao-linha-pratica-leve', '', 100, 'reference', 'packaging'),
   ingredient('guardanapo', 'Guardanapo', 'un', 50, 2.8, 'JK Embalagens · Campinas', `${jk}guardanapo-30x30-50x1`, 'Florax 30 × 30 cm. Dois por pedido na simulação.', 100, 'reference', 'packaging', 2),
 ];
 
-/** User-created items are stored in one shared JSON field so older cadernos
- * can migrate without losing any of their existing ingredient values. Numeric
- * purchase values remain normal budget fields and therefore use the same
- * validation and conflict handling as the built-in catalog. */
 export function normalizeMeasureUnit(unit) {
   if (unit === 'g' || unit === 'kg') return 'g';
   if (unit === 'ml' || unit === 'l') return 'ml';
@@ -63,6 +64,12 @@ const purchaseMeasures = {
 
 export function purchaseMeasure(unit) {
   return Object.hasOwn(purchaseMeasures, unit) ? purchaseMeasures[unit] : undefined;
+}
+
+export function packageSizeFactor(catalogUnit, purchaseUnit) {
+  const baseUnit = normalizeMeasureUnit(catalogUnit);
+  if (!baseUnit || baseUnit !== normalizeMeasureUnit(purchaseUnit)) return null;
+  return purchaseMeasure(catalogUnit).scale / purchaseMeasure(purchaseUnit).scale;
 }
 
 export function readCustomIngredients(values = {}) {
@@ -134,17 +141,47 @@ export function ingredientValues(item, values) {
   return { price, packageSize, yieldPercent: item.id === 'batata' ? 100 : values[`ingredients.${item.id}.yieldPercent`], unitPrice, amount: values[`ingredients.${item.id}.amount`] ?? item.amount };
 }
 
-// Existing values keep their original package basis. Only an explicit unit-price
-// edit creates this two-field patch for one atomic sharedBudget.editMany call.
-// Prices use the purchase unit; the stored quantity uses the item's catalog unit.
-export function getIngredientPriceEdit(item, unitPrice, catalog = ingredients) {
+// The price paid and the quantity it covers must be written together.
+export function getIngredientPurchaseEdit(item, price, quantity, purchaseUnit, catalog = ingredients) {
   const catalogItem = catalog.find((known) => known.id === item?.id);
-  const measure = purchaseMeasure(catalogItem?.unit);
-  if (!measure || item.unit !== catalogItem.unit || !Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > 10000000) return null;
+  if (!catalogItem || item.unit !== catalogItem.unit) return null;
+  if (price !== null || catalogItem.price !== null) {
+    if (!Number.isFinite(price) || price < 0 || price > MAX_PURCHASE_PRICE) return null;
+  }
+  const factor = packageSizeFactor(item.unit, purchaseUnit);
+  if (!factor || !Number.isFinite(quantity) || quantity <= 0 || quantity > MAX_PACKAGE_SIZE / factor) return null;
   return {
-    [`ingredients.${catalogItem.id}.price`]: unitPrice,
-    [`ingredients.${catalogItem.id}.packageSize`]: measure.scale,
+    [`ingredients.${catalogItem.id}.price`]: price,
+    [`ingredients.${catalogItem.id}.packageSize`]: quantity * factor,
   };
+}
+
+export function getIngredientPriceEdit(item, unitPrice, catalog = ingredients) {
+  const measure = purchaseMeasure(item?.unit);
+  if (!measure || !Number.isFinite(unitPrice)) return null;
+  return getIngredientPurchaseEdit(item, unitPrice, 1, measure.unit.toLowerCase(), catalog);
+}
+
+export function recipePartIds(filling, values, catalog) {
+  const savedCustomParts = catalog.filter((item) => {
+    const value = values[`recipes.${filling.id}.${item.id}`];
+    return item.custom && item.type === 'food' && value !== undefined && value !== 0;
+  });
+  return [...Object.keys(filling.parts), ...savedCustomParts.map(({ id }) => id)];
+}
+
+export function recipeAdditionPath(fillingId, item) {
+  return `recipes.${fillingId}.${item.custom ? 'extra-' : ''}${item.id}`;
+}
+
+export function recipeAdditions(filling, values, catalog) {
+  return catalog.flatMap((item) => {
+    const path = recipeAdditionPath(filling.id, item);
+    const quantity = values[path];
+    return item.type === 'food' && !Object.hasOwn(filling.parts, item.id) && quantity !== undefined && quantity !== 0
+      ? [{ item, path, quantity }]
+      : [];
+  });
 }
 
 // Component costs use the same unit conversion and preparation yield as the
@@ -190,9 +227,9 @@ export function estimate(values, selection) {
       costs.fillings.push({ ...portion, cost: null });
       continue;
     }
-    const customPartIds = customIngredients.filter((item) => item.type === 'food' && Object.hasOwn(values, `recipes.${filling.id}.${item.id}`)).map((item) => item.id);
-    const partIds = [...Object.keys(filling.parts), ...customPartIds];
+    const partIds = recipePartIds(filling, values, catalog);
     const parts = partIds.map((id) => [id, values[`recipes.${filling.id}.${id}`]]);
+    const additions = recipeAdditions(filling, values, catalog);
     const total = parts.reduce((sum, [, grams]) => sum + grams, 0);
     if (!(total > 0) || parts.some(([, grams]) => !Number.isFinite(grams) || grams < 0)) {
       alerts.push({ severity: 'error', message: `Informe a composição de ${filling.name}.` });
@@ -200,6 +237,13 @@ export function estimate(values, selection) {
       continue;
     }
     const fillingQuantities = Object.fromEntries(parts.map(([id, grams]) => [id, portion.grams * grams / total]));
+    for (const { item, path, quantity } of additions) {
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        alerts.push({ severity: 'error', field: path, message: `Confira a quantidade de ${item.name} na receita.` });
+        continue;
+      }
+      fillingQuantities[item.id] = (fillingQuantities[item.id] ?? 0) + quantity;
+    }
     for (const [id, quantity] of Object.entries(fillingQuantities)) add(id, quantity);
     costs.fillings.push({ ...portion, cost: costQuantities(values, fillingQuantities, catalog) });
   }
@@ -208,8 +252,8 @@ export function estimate(values, selection) {
     costs.fillingsTotal = Number.isFinite(total) ? total : null;
   }
   const rows = catalog.filter((item) => item.type === 'food' && quantities[item.id] !== 0 && quantities[item.id] !== undefined).map((item) => ({ id: item.id, name: item.name, unit: normalizeMeasureUnit(item.unit), quantity: quantities[item.id], ...ingredientValues(item, values) }));
-  const packaging = catalog.filter((item) => item.type === 'packaging').map((item) => ({ id: item.id, name: item.name, ...ingredientValues(item, values) }));
-  const packagingCost = packaging.reduce((sum, item) => sum + item.unitPrice * item.amount * (item.unit === 'g' || item.unit === 'ml' ? 0.001 : 1), 0);
+  const packaging = catalog.filter((item) => item.type === 'packaging').map((item) => ({ id: item.id, name: item.name, unit: item.unit, ...ingredientValues(item, values) }));
+  const packagingCost = packaging.reduce((sum, item) => item.amount === 0 ? sum : sum + item.unitPrice * item.amount / purchaseMeasure(item.unit).scale, 0);
   const result = calculateBudget({ rows, settings: { ...settings, packagingPerUnit: settings.packagingPerUnit + packagingCost } });
   const allAlerts = [...alerts, ...result.alerts];
   return { ...result, catalog, customIngredients, valid: result.valid && portions.valid && !alerts.some((item) => item.severity === 'error'), alerts: allAlerts, portions: portions.portions, packaging, packagingCost, settings, cheese, selectedFillings, costs };

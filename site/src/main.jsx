@@ -5,7 +5,7 @@ import '@fontsource-variable/fraunces';
 import '@fontsource-variable/outfit';
 import { useSharedChoices } from './useSharedChoices';
 import { useSharedBudget } from './useSharedBudget';
-import { useDeviceMenu } from './useDeviceMenu';
+import { useDeviceBudget } from './useDeviceBudget';
 import { defaultFields } from './sharedBudgetDefaults';
 import { budgetHash, budgetTabs, readRoute } from './navigation';
 import Budget from './Budget';
@@ -16,7 +16,7 @@ import './workspace.css';
 function App() {
   const shared = useSharedChoices();
   const budget = useSharedBudget(shared.roomId, defaultFields);
-  const deviceMenu = useDeviceMenu(shared.roomId);
+  const deviceBudget = useDeviceBudget(shared.roomId);
   const [route, setRoute] = useState(() => readRoute(window.location.hash));
   const isBrand = route.page === 'galeria';
 
@@ -62,7 +62,7 @@ function App() {
 
     <main id="conteudo" className="workspace-main page-width" tabIndex={-1}>
       <div hidden={isBrand}>
-        <Budget sharedBudget={budget} deviceMenu={deviceMenu} activeTab={route.tab} onTabChange={changeBudgetTab} />
+        <Budget sharedBudget={budget} deviceBudget={deviceBudget} activeTab={route.tab} onTabChange={changeBudgetTab} />
       </div>
       <div id="galeria" hidden={!isBrand}>
         <h1 className="workspace-brand-title">Marca</h1>
