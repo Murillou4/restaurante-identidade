@@ -10,6 +10,7 @@ import { defaultFields } from './sharedBudgetDefaults';
 import { budgetHash, budgetTabs, readRoute } from './navigation';
 import Budget from './Budget';
 import Gallery from './Gallery';
+import CadernoTransfer, { useCadernoStatus } from './CadernoTransfer';
 import './style.css';
 import './workspace.css';
 
@@ -17,6 +18,8 @@ function App() {
   const shared = useSharedChoices();
   const budget = useSharedBudget(shared.roomId, defaultFields);
   const deviceBudget = useDeviceBudget(shared.roomId);
+  const status = useCadernoStatus();
+  const [unitDraft, setUnitDraft] = useState({});
   const [route, setRoute] = useState(() => readRoute(window.location.hash));
   const isBrand = route.page === 'galeria';
 
@@ -43,6 +46,10 @@ function App() {
     window.location.hash = budgetHash(id);
   }
 
+  if (status === 'moved') return <main className="workspace-main page-width">
+    <CadernoTransfer budget={budget} device={deviceBudget} unitDraft={unitDraft} moved />
+  </main>;
+
   return <>
     <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
     <header className="workspace-header">
@@ -62,7 +69,10 @@ function App() {
 
     <main id="conteudo" className="workspace-main page-width" tabIndex={-1}>
       <div hidden={isBrand}>
-        <Budget sharedBudget={budget} deviceBudget={deviceBudget} activeTab={route.tab} onTabChange={changeBudgetTab} />
+        {status === 'unavailable' && <p className="workspace-alert" role="status">Estamos verificando a mudança para o painel. Você pode consultar e exportar os dados do caderno.</p>}
+        <Budget sharedBudget={budget} deviceBudget={deviceBudget} activeTab={route.tab} onTabChange={changeBudgetTab}
+          migrationPending={status !== 'open'} onUnitDraftChange={setUnitDraft} />
+        <CadernoTransfer budget={budget} device={deviceBudget} unitDraft={unitDraft} />
       </div>
       <div id="galeria" hidden={!isBrand}>
         <h1 className="workspace-brand-title">Marca</h1>

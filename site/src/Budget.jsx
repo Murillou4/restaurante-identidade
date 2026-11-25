@@ -9,6 +9,7 @@ import {
 } from './budgetCatalog';
 import { defaultFields } from './sharedBudgetDefaults';
 import { budgetHash, budgetTabs } from './navigation';
+import { PURCHASE_UNITS_FIELD } from './exportCosts';
 import BudgetThumbnail from './BudgetThumbnail';
 import './budget.css';
 
@@ -23,10 +24,6 @@ const purchaseLabels = { kg: 'quilo', L: 'litro', un: 'unidade' };
 const purchaseUnitLabels = { kg: 'Quilos (kg)', g: 'Gramas (g)', l: 'Litros (L)', ml: 'Mililitros (ml)', un: 'Unidades (un)' };
 const purchaseUnits = { g: ['kg', 'g'], ml: ['l', 'ml'], un: ['un'] };
 const displayUnit = (unit) => unit === 'l' ? 'L' : unit;
-const recipeMeasure = (item, unit) => ({
-  unit: displayUnit(unit),
-  factor: packageSizeFactor(normalizeMeasureUnit(item.unit), unit),
-});
 const categories = { ingredient: 'Ingrediente', beverage: 'Bebida', packaging: 'Embalagem', material: 'Material' };
 const isPackaging = (category) => category === 'packaging' || category === 'material';
 const emptyNewItem = { name: '', category: 'ingredient', unit: 'kg', quantity: '1', price: '' };
@@ -329,25 +326,24 @@ function alertPath(item, result) {
   return 'settings.chosenPrice';
 }
 
-function RecipeAddForm({ items, recipeName, purchaseUnitFor, disabled, onAdd }) {
+function RecipeAddForm({ items, recipeName, disabled, onAdd }) {
   const ingredientId = useId();
   const amountId = useId();
-  const [selection, setSelection] = useState(null);
+  const [selectedId, setSelectedId] = useState('');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
-  const selected = items.find((item) => item.id === selection?.id);
-  const measure = selected ? recipeMeasure(selected, selection.unit) : null;
+  const selected = items.find((item) => item.id === selectedId);
 
   function submit(event) {
     event.preventDefault();
     if (!selected) return;
-    const quantity = readDecimal(amount) * measure.factor;
+    const quantity = readDecimal(amount);
     if (!Number.isFinite(quantity) || quantity <= 0) {
       setError('Informe uma quantidade maior que zero.');
       return;
     }
     onAdd(selected, quantity);
-    setSelection(null);
+    setSelectedId('');
     setAmount('');
     setError('');
     event.currentTarget.closest('details').open = false;
@@ -360,8 +356,7 @@ function RecipeAddForm({ items, recipeName, purchaseUnitFor, disabled, onAdd }) 
         <div className="budget-field">
           <label htmlFor={ingredientId}>Ingrediente</label>
           <select id={ingredientId} value={selected?.id ?? ''} disabled={disabled} onChange={(event) => {
-            const item = items.find(({ id }) => id === event.target.value);
-            setSelection(item ? { id: item.id, unit: purchaseUnitFor(item) } : null);
+            setSelectedId(event.target.value);
             setAmount('');
             setError('');
           }}>
@@ -376,7 +371,7 @@ function RecipeAddForm({ items, recipeName, purchaseUnitFor, disabled, onAdd }) 
               setAmount(event.target.value);
               setError('');
             }} />
-            {measure && <span>{measure.unit}</span>}
+            {selected && <span>{normalizeMeasureUnit(selected.unit)}</span>}
           </div>
           {error && <small className="budget-field-error" id={`${amountId}-error`} role="alert">{error}</small>}
         </div>
@@ -387,12 +382,13 @@ function RecipeAddForm({ items, recipeName, purchaseUnitFor, disabled, onAdd }) 
   </details>;
 }
 
-export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simular', onTabChange }) {
+export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simular', onTabChange, migrationPending = false, onUnitDraftChange }) {
   const tab = budgetTabs.some((item) => item.id === activeTab) ? activeTab : 'simular';
   const rootRef = useRef(null);
   const [pendingFocus, setPendingFocus] = useState(null);
   const [query, setQuery] = useState('');
   const [purchaseUnitChoices, setPurchaseUnitChoices] = useState({});
+  const [unitSaved, setUnitSaved] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [showSaved, setShowSaved] = useState(false);
   const [newItem, setNewItem] = useState(emptyNewItem);
@@ -400,13 +396,24 @@ export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simula
   const values = { ...defaultFields, ...sharedBudget.values, ...deviceBudget.fields };
   const customIngredients = readCustomIngredients(values);
   const catalog = [...ingredients, ...customIngredients];
+  const savedPurchaseUnits = deviceBudget.fields[PURCHASE_UNITS_FIELD] ?? {};
+  const unitsDirty = Object.keys(purchaseUnitChoices).length > 0;
+  useEffect(() => { onUnitDraftChange?.(purchaseUnitChoices); }, [purchaseUnitChoices, onUnitDraftChange]);
   const purchaseUnitFor = (item) => {
     const { unit, scale } = purchaseMeasure(item.unit);
-    return purchaseUnitChoices[item.id] ?? (values[`ingredients.${item.id}.packageSize`] < scale
+    return purchaseUnitChoices[item.id] ?? savedPurchaseUnits[item.id] ?? (values[`ingredients.${item.id}.packageSize`] < scale
       ? normalizeMeasureUnit(item.unit)
       : unit.toLowerCase());
   };
-  const choosePurchaseUnit = (id, unit) => setPurchaseUnitChoices((current) => ({ ...current, [id]: unit }));
+  const choosePurchaseUnit = (id, unit) => {
+    setUnitSaved(false);
+    setPurchaseUnitChoices((current) => {
+      const next = { ...current };
+      if (savedPurchaseUnits[id] === unit) delete next[id];
+      else next[id] = unit;
+      return next;
+    });
+  };
   const result = estimate(values);
   const selected = Array.isArray(result.selectedFillings) ? result.selectedFillings : [];
   const pizza = values[PIZZA_MODE_FIELD];
@@ -437,8 +444,17 @@ export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simula
   });
   const invalid = errors.length > 0 || (!result.valid && missingPrices.length === 0);
   const connecting = sharedBudget.loading && !sharedBudget.cloud;
-  const disabled = sharedBudget.saving || connecting;
-  const canSave = !disabled && Boolean(sharedBudget.cloud) && sharedBudget.dirty > 0 && !invalid;
+  const disabled = sharedBudget.saving || connecting || migrationPending;
+  const canSave = !disabled && (unitsDirty || sharedBudget.dirty > 0) &&
+    (!sharedBudget.dirty || (Boolean(sharedBudget.cloud) && !invalid));
+  async function saveBudget() {
+    if (!canSave) return;
+    if (sharedBudget.dirty && !(await sharedBudget.save())) return;
+    if (unitsDirty && deviceBudget.edit({ [PURCHASE_UNITS_FIELD]: { ...savedPurchaseUnits, ...purchaseUnitChoices } })) {
+      setPurchaseUnitChoices({});
+      setUnitSaved(true);
+    }
+  }
   useEffect(() => {
     if (!sharedBudget.notice) return;
     setShowSaved(true);
@@ -570,10 +586,8 @@ export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simula
     if (detail.tagName === 'DETAILS' && !detail.open && errors.some(({ path }) => detail.contains(findField(path)))) detail.open = true;
   };
   function recipeQuantityField({ item, path, quantity }, context, positive = false) {
-    const { unit, factor } = recipeMeasure(item, purchaseUnitFor(item));
-    return <NumberField key={`${path}:${unit}`} {...fieldProps} path={path} label={item.name}
-      value={quantity / factor} unit={unit} context={context} positive={positive}
-      edit={(field, value) => fieldProps.edit(field, value * factor)} />;
+    return <NumberField key={path} {...fieldProps} path={path} label={item.name}
+      value={quantity} unit={normalizeMeasureUnit(item.unit)} context={context} positive={positive} />;
   }
 
   function recipeDetails(filling) {
@@ -604,7 +618,7 @@ export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simula
           </div>)}
         </div>
       </fieldset>}
-      <RecipeAddForm items={available} recipeName={name} purchaseUnitFor={purchaseUnitFor} disabled={disabled} onAdd={(item, quantity) => {
+      <RecipeAddForm items={available} recipeName={name} disabled={disabled} onAdd={(item, quantity) => {
         const path = recipeAdditionPath(filling.id, item);
         editMany({ [path]: quantity });
         setPendingFocus(path);
@@ -613,10 +627,11 @@ export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simula
   }
 
   const saveStatus = sharedBudget.saving ? 'Salvando…'
-    : invalid ? 'Corrija os campos sinalizados'
+    : invalid && sharedBudget.dirty ? 'Corrija os campos sinalizados'
+    : unitsDirty && !sharedBudget.dirty ? 'Medida da compra alterada'
     : sharedBudget.cloud ? 'Alterações sem salvar' : 'Aguardando conexão';
-  const hasDraft = sharedBudget.dirty > 0 || localErrors.length > 0 || sharedBudget.saving;
-  const saved = Boolean(sharedBudget.notice && showSaved);
+  const hasDraft = unitsDirty || sharedBudget.dirty > 0 || localErrors.length > 0 || sharedBudget.saving;
+  const saved = unitSaved || Boolean(sharedBudget.notice && showSaved);
 
   return <section ref={rootRef} id="orcamento" className="budget" aria-labelledby="budget-title" onToggleCapture={keepErrorsVisible}>
     <header className="budget-header">
@@ -832,7 +847,7 @@ export default function Budget({ sharedBudget, deviceBudget, activeTab = 'simula
     {(hasDraft || saved) && <div className="budget-savebar">
       <div className="budget-save-inner">
         <span className="budget-save-status" role="status">{hasDraft ? saveStatus : 'Salvo'}</span>
-        {hasDraft && <button type="button" className="budget-button primary" onClick={() => sharedBudget.save()} disabled={!canSave}>Salvar</button>}
+        {hasDraft && <button type="button" className="budget-button primary" onClick={saveBudget} disabled={!canSave}>Salvar</button>}
       </div>
     </div>}
   </section>;

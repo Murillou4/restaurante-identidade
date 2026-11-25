@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { CUSTOM_CATALOG_FIELD, isDeviceBudgetField, PIZZA_MODE_FIELD } from './budgetCatalog.js';
+import { CUSTOM_CATALOG_FIELD, isDeviceBudgetField, normalizeMeasureUnit, PIZZA_MODE_FIELD } from './budgetCatalog.js';
+import { PURCHASE_UNITS_FIELD } from './exportCosts.js';
 
 export function useDeviceBudget(roomId) {
   // Keep the existing key so saved Pizza purchases and recipes still load.
@@ -8,6 +9,8 @@ export function useDeviceBudget(roomId) {
     try {
       const saved = JSON.parse(window.localStorage.getItem(key) ?? '{}');
       return Object.fromEntries(Object.entries(saved).filter(([path, value]) => {
+        if (path === PURCHASE_UNITS_FIELD) return value && typeof value === 'object' && !Array.isArray(value) &&
+          Object.values(value).every((unit) => normalizeMeasureUnit(unit));
         if (!isDeviceBudgetField(path)) return false;
         if (path === PIZZA_MODE_FIELD) return typeof value === 'boolean';
         if (path === CUSTOM_CATALOG_FIELD) return typeof value === 'string';
@@ -27,8 +30,10 @@ export function useDeviceBudget(roomId) {
     try {
       window.localStorage.setItem(key, JSON.stringify(next));
       setError('');
+      return true;
     } catch {
       setError('O navegador não guardou as edições deste aparelho. Os valores continuam nesta tela.');
+      return false;
     }
   }
 
