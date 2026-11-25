@@ -65,9 +65,15 @@ export async function createCostsExport(room, deviceFields) {
   const shared = { ...defaultFields, ...room.fields };
   const baseline = calculateExport(shared);
   const device = calculateExport({ ...shared, ...deviceFields });
+  const savedMeasures = deviceFields[PURCHASE_UNITS_FIELD] ?? {};
+  const itemChanges = new Map(differences(baseline.items, device.items).map((item) => [item.id, item]));
+  for (const item of device.items) {
+    if (Object.hasOwn(savedMeasures, item.id)) itemChanges.set(item.id, item);
+  }
   return {
     format: 'grazi-costs-v1', source, revision: room.revision, baseline,
-    device: { items: differences(baseline.items, device.items), recipes: differences(baseline.recipes, device.recipes) },
+    device: { items: [...itemChanges.values()], recipes: differences(baseline.recipes, device.recipes),
+      selectedMeasures: device.items.filter(({ id }) => Object.hasOwn(savedMeasures, id)).map(({ id }) => id) },
   };
 }
 

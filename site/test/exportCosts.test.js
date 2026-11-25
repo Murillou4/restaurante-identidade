@@ -28,10 +28,20 @@ test('exporta as compras e quantidades por batata, mantendo os dados locais sepa
   assert.equal(ham.paid, 1990);
   assert.equal(ham.quantity, 500);
   assert.equal(file.device.items.find(({ id }) => id === 'embalagem-x-salada').perOrder, 1);
+  assert.deepEqual(file.device.selectedMeasures, ['batata']);
   const chicken = file.baseline.recipes.find(({ id }) => id === 'frango');
   assert.equal(chicken.lines.find(({ itemId }) => itemId === 'frango').quantity, 105);
   const pizza = file.device.recipes.find(({ id }) => id === 'pizza');
   assert.equal(pizza.lines.find(({ itemId }) => itemId === 'milho').quantity, 24);
   assert.match(file.source, /^[a-f0-9]{64}$/);
   assert.ok(!JSON.stringify(file).includes(roomId));
+});
+
+test('exporta a unidade escolhida mesmo quando ela coincide com a sugerida pelo caderno', async () => {
+  const file = await createCostsExport({ roomId: crypto.randomUUID(), revision: 0, fields: {} }, {
+    [PURCHASE_UNITS_FIELD]: { batata: 'g' },
+  });
+  assert.equal(file.baseline.items.find(({ id }) => id === 'batata').unit, 'g');
+  assert.equal(file.device.items.find(({ id }) => id === 'batata').unit, 'g');
+  assert.deepEqual(file.device.selectedMeasures, ['batata']);
 });
